@@ -1,0 +1,18 @@
+[package]
+name = "almanac10"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+env_logger = "0.9"
+log = "0.4"
+pixels = "0.9"
+winit = "0.27.3"
+winit_input_helper = "0.13"
+cgmath = "0.18.0"
+
+[[bin]]
+name = "almanac10"
+path = "main.rs"
