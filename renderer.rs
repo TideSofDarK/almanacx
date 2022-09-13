@@ -1,6 +1,4 @@
-use std::ops::MulAssign;
-
-use cgmath::{Vector3, VectorSpace, Matrix4, Point3, Deg, SquareMatrix, Vector4};
+use cgmath::{Vector3, VectorSpace, Matrix4, Deg, SquareMatrix, Vector4};
 
 use super::math::{Vertex, distance2D};
 
@@ -12,7 +10,6 @@ pub struct Renderer {
     width: i16,
     height: i16,
     view_proj_mat: Matrix4<f32>,
-    view_mat: Matrix4<f32>,
     proj_mat: Matrix4<f32>,
     viewport_mat: Matrix4<f32>
 }
@@ -28,11 +25,6 @@ impl Renderer {
             scanlines_max_color: vec![black; size],
             width,
             height,
-            view_mat: Matrix4::look_at_rh(
-                Point3::new(5.0, 5.0, 3.0),
-                Point3::new(0.0, 0.0, 0.0),
-                Vector3::unit_z(),
-            ),
             proj_mat: cgmath::perspective( Deg(115.0f32), width as f32 / height as f32, 0.1, 1000.0),
             viewport_mat: Matrix4{
                 x: Vector4::new(width as f32/2.0, 0.0, 0.0, 0.0),
@@ -44,14 +36,8 @@ impl Renderer {
         }
     }
 
-    pub fn set_position (&mut self, pos: Vector3<f32>) {
-        self.view_mat = Matrix4::look_to_rh(Point3::new(-pos.x, 0.0, -pos.y),
-        Vector3::unit_z(),
-        Vector3::unit_y());
-    }
-
-    pub fn begin(&mut self) {
-        self.view_proj_mat = self.proj_mat * self.view_mat;
+    pub fn begin(&mut self, view_mat: Matrix4<f32>) {
+        self.view_proj_mat = self.proj_mat * view_mat;
     }
 
     fn preprocess_triangle(&mut self, v0w: Vertex, v1w: Vertex, v2w: Vertex) -> Option<(Vertex, Vertex, Vertex)> {
@@ -121,12 +107,13 @@ impl Renderer {
 
         println!("{:?} {:?} {:?}", v0.pos, v1.pos, v2.pos);
 
-        if v0.pos.x < 0.0 && v1.pos.x < 0.0 && v2.pos.x < 0.0 ||
-            v0.pos.x >= self.width as f32 && v1.pos.x > self.width as f32 && v2.pos.x > self.width as f32 ||
-            v0.pos.y < 0.0 && v1.pos.y < 0.0 && v2.pos.y < 0.0 ||
-            v0.pos.y >= self.height as f32 && v1.pos.y > self.height as f32 && v2.pos.y > self.height as f32 {
-            return None
-        }
+        // if v0.pos.x < 0.0 && v1.pos.x < 0.0 && v2.pos.x < 0.0 ||
+        //     v0.pos.x >= self.width as f32 && v1.pos.x > self.width as f32 && v2.pos.x > self.width as f32 ||
+        //     v0.pos.y < 0.0 && v1.pos.y < 0.0 && v2.pos.y < 0.0 ||
+        //     v0.pos.y >= self.height as f32 && v1.pos.y > self.height as f32 && v2.pos.y > self.height as f32 {
+        //     return None
+        // }
+
         return Some((v0, v1, v2))
     }
 

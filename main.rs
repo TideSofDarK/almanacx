@@ -3,6 +3,7 @@
 
 mod math;
 mod renderer;
+mod player;
 
 use std::f32::consts::PI;
 
@@ -17,17 +18,17 @@ use winit_input_helper::WinitInputHelper;
 use cgmath::{Vector3, Vector4, Point3};
 
 use crate::renderer::{Renderer};
+use crate::player::{Player};
 
 const WIDTH: u32 = 640;
 const HEIGHT: u32 = 360;
 
 struct Game {
     angle: f32,
-    x: f32,
-    y: f32,
     x_circling: f32,
     y_circling: f32,
-    renderer: Renderer
+    renderer: Renderer,
+    player: Player
 }
 
 fn main() -> Result<(), Error> {
@@ -73,20 +74,13 @@ fn main() -> Result<(), Error> {
                 return;
             }
 
-            if input.key_held(VirtualKeyCode::W) {
-                game.y -= 0.05;
-            }
-            if input.key_held(VirtualKeyCode::A) {
-                game.x -= 0.05;
-            }
-            if input.key_held(VirtualKeyCode::S) {
-                game.y += 0.05;
-            }
-            if input.key_held(VirtualKeyCode::D) {
-                game.x += 0.05;
-            }
-
-            game.renderer.set_position(Vector3::new(game.x, game.y, 0.0));
+            game.player.handle_input(
+                input.key_held(VirtualKeyCode::W),
+                input.key_held(VirtualKeyCode::S),
+                input.key_held(VirtualKeyCode::A),
+                input.key_held(VirtualKeyCode::D),
+                input.key_held(VirtualKeyCode::Left),
+                input.key_held(VirtualKeyCode::Right));
 
             // Resize the window
             if let Some(size) = input.window_resized() {
@@ -104,11 +98,10 @@ impl Game {
     fn new() -> Self {
         Self {
             angle: 0.0,
-            x: 0.0,
-            y: 0.0,
             x_circling: 0.0,
             y_circling: 0.0,
-            renderer: Renderer::new(WIDTH as i16, HEIGHT as i16)
+            renderer: Renderer::new(WIDTH as i16, HEIGHT as i16),
+            player: Player::new()
         }
     }
 
@@ -129,7 +122,7 @@ impl Game {
             pixel.copy_from_slice(&[0x00, 0x00, 0x00, 0xff]);
         }
 
-        self.renderer.begin();
+        self.renderer.begin(self.player.get_view_matrix());
 
         for i in 0..10 {
             let offset = (i as f32) * 0.5;
