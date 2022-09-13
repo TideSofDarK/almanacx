@@ -1,8 +1,8 @@
-use cgmath::Vector3;
+use cgmath::{Vector3, Vector4};
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct Vertex {
-    pub pos: Vector3<f32>,
+    pub pos: Vector4<f32>,
     pub color: Vector3<f32>
 }
 
