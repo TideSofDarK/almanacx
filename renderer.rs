@@ -3,12 +3,13 @@ use cgmath::{Vector3, VectorSpace, Matrix4, Deg, SquareMatrix, Vector4};
 use super::math::{Vertex, distance2D};
 
 pub struct Renderer {
+    width: i16,
+    height: i16,
     scanlines_min: Vec<i16>,
     scanlines_max: Vec<i16>,
     scanlines_min_color: Vec<Vector3<f32>>,
     scanlines_max_color: Vec<Vector3<f32>>,
-    width: i16,
-    height: i16,
+    z_buffer: Vec<f32>,
     view_proj_mat: Matrix4<f32>,
     proj_mat: Matrix4<f32>,
     viewport_mat: Matrix4<f32>
@@ -16,16 +17,20 @@ pub struct Renderer {
 
 impl Renderer {
     pub fn new(width: i16, height: i16) -> Renderer {
-        let size = height as usize;
+        let height_size = height as usize;
+        let width_size = width as usize;
+
         let black = Vector3::new(0.0,0.0,0.0);
+
         Renderer {
-            scanlines_min: vec![0; size],
-            scanlines_max: vec![0; size],
-            scanlines_min_color: vec![black; size],
-            scanlines_max_color: vec![black; size],
-            width,
-            height,
-            proj_mat: cgmath::perspective( Deg(115.0f32), width as f32 / height as f32, 0.1, 1000.0),
+            width: width,
+            height: height,
+            scanlines_min: vec![0; height_size],
+            scanlines_max: vec![0; height_size],
+            scanlines_min_color: vec![black; height_size],
+            scanlines_max_color: vec![black; height_size],
+            z_buffer: vec![0.0; height_size * width_size],
+            proj_mat: cgmath::perspective( Deg(90.0f32), width as f32 / height as f32, 0.1, 1000.0),
             viewport_mat: Matrix4{
                 x: Vector4::new(width as f32/2.0, 0.0, 0.0, 0.0),
                 y: Vector4::new(0.0, -height as f32/2.0, 0.0, 0.0),
@@ -38,74 +43,43 @@ impl Renderer {
 
     pub fn begin(&mut self, view_mat: Matrix4<f32>) {
         self.view_proj_mat = self.proj_mat * view_mat;
+
+        for y in self.z_buffer.iter_mut() {
+            *y = f32::MIN
+        }
     }
 
-    fn preprocess_triangle(&mut self, v0w: Vertex, v1w: Vertex, v2w: Vertex) -> Option<(Vertex, Vertex, Vertex)> {
-        let mut v0 = Vertex{ pos: self.view_proj_mat * v0w.pos, color: v0w.color };
-        let mut v1 = Vertex{ pos: self.view_proj_mat * v1w.pos, color: v1w.color };
-        let mut v2 = Vertex{ pos: self.view_proj_mat * v2w.pos, color: v2w.color };
+    fn preprocess_triangle(&mut self, vertices: &mut [Vertex; 3]) -> bool {
+        for v in vertices.iter_mut() {
+            v.pos = self.view_proj_mat * v.pos;
 
-        if ((v0.pos.x > v0.pos.w) || (v0.pos.x < -v0.pos.w))
-		{
-			return None
-		}
-		else if ((v0.pos.y > v0.pos.w) || (v0.pos.y < -v0.pos.w))
-		{
-			return None
-		}
-		else if ((v0.pos.z > v0.pos.w) || (v0.pos.z < -v0.pos.w))
-		{
-			return None
-		}
+            if (v.pos.x > v.pos.w) || (v.pos.x < -v.pos.w) {
+                return false
+            } else if (v.pos.y > v.pos.w) || (v.pos.y < -v.pos.w) {
+                return false
+            } else if (v.pos.z > v.pos.w) || (v.pos.z < -v.pos.w) {
+                return false
+            }
 
-        if ((v1.pos.x > v1.pos.w) || (v1.pos.x < -v1.pos.w))
-		{
-			return None
-		}
-		else if ((v1.pos.y > v1.pos.w) || (v1.pos.y < -v1.pos.w))
-		{
-			return None
-		}
-		else if ((v1.pos.z > v1.pos.w) || (v1.pos.z < -v1.pos.w))
-		{
-			return None
-		}
+            let reciprocal = 1.0 / v.pos.w;
+            v.pos.x *= reciprocal;
+            v.pos.y *= reciprocal;
+            v.pos.z *= reciprocal;
+            v.pos.w = 1.0;
+            v.pos = self.viewport_mat * v.pos;
+        }
 
-        if ((v2.pos.x > v2.pos.w) || (v2.pos.x < -v2.pos.w))
-		{
-			return None
-		}
-		else if ((v2.pos.y > v2.pos.w) || (v2.pos.y < -v2.pos.w))
-		{
-			return None
-		}
-		else if ((v2.pos.z > v2.pos.w) || (v2.pos.z < -v2.pos.w))
-		{
-			return None
-		}
+        if vertices[0].pos.y > vertices[1].pos.y {
+            vertices.swap(0, 1);
+        }
+        if vertices[0].pos.y > vertices[2].pos.y {
+            vertices.swap(0, 2);
+        }
+        if vertices[1].pos.y > vertices[2].pos.y {
+            vertices.swap(1, 2);
+        }
 
-        let reciprocal = 1.0 / v0.pos.w;
-		v0.pos.x *= reciprocal;
-		v0.pos.y *= reciprocal;
-		v0.pos.z *= reciprocal;
-		v0.pos.w = 1.0;
-        v0.pos = self.viewport_mat * v0.pos;
-
-        let reciprocal = 1.0 / v1.pos.w;
-		v1.pos.x *= reciprocal;
-		v1.pos.y *= reciprocal;
-		v1.pos.z *= reciprocal;
-		v1.pos.w = 1.0;
-        v1.pos = self.viewport_mat * v1.pos;
-
-        let reciprocal = 1.0 / v2.pos.w;
-		v2.pos.x *= reciprocal;
-		v2.pos.y *= reciprocal;
-		v2.pos.z *= reciprocal;
-		v2.pos.w = 1.0;
-        v2.pos = self.viewport_mat * v2.pos;
-
-        println!("{:?} {:?} {:?}", v0.pos, v1.pos, v2.pos);
+        // println!("{:?} {:?} {:?}", v0.pos, v1.pos, v2.pos);
 
         // if v0.pos.x < 0.0 && v1.pos.x < 0.0 && v2.pos.x < 0.0 ||
         //     v0.pos.x >= self.width as f32 && v1.pos.x > self.width as f32 && v2.pos.x > self.width as f32 ||
@@ -114,27 +88,26 @@ impl Renderer {
         //     return None
         // }
 
-        return Some((v0, v1, v2))
+        return true
     }
 
     pub fn draw_triangle(&mut self, v0w: Vertex, v1w: Vertex, v2w: Vertex, frame: &mut [u8]) {
-        let processed = self.preprocess_triangle(v0w, v1w, v2w);
-        if processed.is_none() {
+        let mut vertices = [v0w, v1w, v2w];
+        if !self.preprocess_triangle(&mut vertices) {
             return;
         }
-        let (v0, v1, v2) = processed.unwrap();
 
-        let min_y = (v1.pos.y.min(v2.pos.y).min(v0.pos.y)).max(0.0) as usize;
-        let max_y = (v1.pos.y.max(v2.pos.y).max(v0.pos.y)).min(self.height as f32 - 1.0) as usize;
+        let min_y = (vertices[1].pos.y.min(vertices[2].pos.y).min(vertices[0].pos.y)).max(0.0) as usize;
+        let max_y = (vertices[1].pos.y.max(vertices[2].pos.y).max(vertices[0].pos.y)).min(self.height as f32 - 1.0) as usize;
 
         for y in min_y..max_y {
             self.scanlines_min[y] = i16::MAX;
             self.scanlines_max[y] = i16::MIN;
         }
 
-        self.calculate_line(v0, v1);
-        self.calculate_line(v1, v2);
-        self.calculate_line(v2, v0);
+        self.calculate_line(vertices[0], vertices[1]);
+        self.calculate_line(vertices[1], vertices[2]);
+        self.calculate_line(vertices[2], vertices[0]);
 
         for y in min_y..max_y {
             let min_x = self.scanlines_min[y].max(0);
@@ -146,6 +119,8 @@ impl Renderer {
                 let normalized = (x as f32 - min_x as f32) / (max_x as f32 - min_x as f32);
                 let index = (y as usize * self.width as usize + x as usize) * 4;
                 let color = min_color.lerp(max_color, normalized);
+
+                // let z = vertices[0].pos.z
 
                 frame[index] = (color.x * 255.0) as u8;
                 frame[index+1] = (color.y * 255.0) as u8;
