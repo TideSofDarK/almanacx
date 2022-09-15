@@ -52,10 +52,6 @@ impl WAD {
                         .chunks(VERTICES_SIZE)
                         .map(|x| (Vector2::new(read_i16(x, 0), read_i16(x, 2))))
                         .collect();
-                    println!(
-                        "Loading map \"{}\" of size {} with offset {}",
-                        dir.name, dir.size, dir.offset
-                    );
                 }
                 "LINEDEFS" => {
                     data.linedefs = self.buf[dir.offset..dir.offset + dir.size]
@@ -67,11 +63,10 @@ impl WAD {
             }
         }
 
-        if !found {
-            return Err(());
+        match found {
+            true => Ok(data),
+            _ => Err(()),
         }
-
-        Ok(data)
     }
 }
 

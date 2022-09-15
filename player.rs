@@ -14,7 +14,7 @@ impl Player {
             walk_speed: 1.75,
             turn_speed: 1.5,
             view: Matrix4::look_to_rh(
-                Point3::new(0.0, 0.0, 0.0),
+                Point3::new(0.0, 0.5, 0.0),
                 Vector3::unit_z(),
                 Vector3::unit_y(),
             ),
