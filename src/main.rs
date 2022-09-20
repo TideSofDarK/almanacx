@@ -7,7 +7,11 @@ mod player;
 mod renderer;
 mod wad;
 mod world;
+mod console;
 
+use std::time::Instant;
+
+use console::Console;
 use game::Game;
 use log::error;
 use pixels::{Error, Pixels, SurfaceTexture};
@@ -42,10 +46,18 @@ fn main() -> Result<(), Error> {
     };
 
     let mut game = Game::new();
+    let mut console = Console::new(WIDTH, HEIGHT);
+
+    let mut dt = 0.0;
+    let mut last_frame = Instant::now();
 
     event_loop.run(move |event, _, control_flow| {
         if let Event::RedrawRequested(_) = event {
-            game.draw(pixels.get_frame());
+            let frame = pixels.get_frame();
+            frame.fill(0x00);
+            game.draw(frame);
+            console.draw(frame);
+
             if pixels
                 .render()
                 .map_err(|e| error!("pixels.render() failed: {}", e))
@@ -56,25 +68,33 @@ fn main() -> Result<(), Error> {
             }
         }
 
-        // Handle input events
         if input.update(&event) {
-            game.dt();
-
-            // Close events
-            if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
-                *control_flow = ControlFlow::Exit;
-                return;
-            }
-
-            game.handle_input(&mut input);
-
-            // Resize the window
             if let Some(size) = input.window_resized() {
                 pixels.resize_surface(size.width, size.height);
             }
 
-            // Update internal state and request a redraw
-            game.update();
+            dt = last_frame.elapsed().as_secs_f32();
+            last_frame = Instant::now();
+
+            if input.key_pressed(VirtualKeyCode::Grave) {
+                console.toggle();
+            }
+
+            if input.key_pressed(VirtualKeyCode::B) {
+                println!("{:?}", dt);
+            }
+
+            if console.is_open() {
+                console.handle_input(&input);
+            } else {
+                if game.handle_input(&input) {
+                    *control_flow = ControlFlow::Exit;
+                }
+            }
+
+            console.update(dt);
+            game.update(dt);
+
             window.request_redraw();
         }
     });

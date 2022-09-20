@@ -15,4 +15,4 @@ cgmath = "0.18.0"
 
 [[bin]]
 name = "almanac10"
-path = "main.rs"
+path = "src/main.rs"

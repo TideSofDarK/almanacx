@@ -21,6 +21,7 @@ impl World {
                     1.0,
                 ),
                 color: Vector3::new(1.0, 1.0, 1.0),
+                uv: None,
             });
         }
 
@@ -35,10 +36,10 @@ impl World {
     }
 
     pub fn get_vertices(&self) -> &Vec<Vertex> {
-        return &self.vertices;
+        &self.vertices
     }
 
     pub fn get_linedefs(&self) -> &Vec<Vector2<usize>> {
-        return &self.linedefs;
+        &self.linedefs
     }
 }
