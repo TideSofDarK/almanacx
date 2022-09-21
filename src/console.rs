@@ -7,7 +7,7 @@ pub struct Console {
     height: u32,
     open: bool,
     y_offset: f32,
-    moving: bool
+    moving: bool,
 }
 
 impl Console {
@@ -17,17 +17,18 @@ impl Console {
             height: height / 3,
             open: false,
             y_offset: 0.0,
-            moving: false
+            moving: false,
         }
     }
 
-    pub fn handle_input(&mut self, input: &WinitInputHelper) {
-
-    }
+    pub fn handle_input(&mut self, input: &WinitInputHelper) {}
 
     pub fn update(&mut self, dt: f32) {
         if self.moving {
-            let sign = match self.open { true => 1.0, false => -1.0 };
+            let sign = match self.open {
+                true => 1.0,
+                false => -1.0,
+            };
             self.y_offset = (self.y_offset as f32 + (500.0 * dt * sign)).clamp(0.0, 255.0);
 
             if self.y_offset >= self.height as f32 || self.y_offset <= 0.0 {
@@ -40,9 +41,9 @@ impl Console {
         if self.y_offset <= 0.0 {
             return;
         }
-        
+
         for y in 0..self.y_offset as usize {
-            for x in 0..self.width  {
+            for x in 0..self.width {
                 let index = (y as usize * self.width as usize + x as usize) * 4;
 
                 frame[index] = lerp_u8(frame[index], BG_COLOR.0, BG_COLOR.3);

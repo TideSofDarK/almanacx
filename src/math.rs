@@ -41,27 +41,17 @@ pub struct VertexHelper {
 //     a + (b - a) * t
 // }
 
-pub fn distance2d(x0: f32, x1: f32, y0: f32, y1: f32) -> f32 {
-    (x1 - x0).hypot(y1 - y0)
+#[inline]
+pub fn min3(a: i32, b: i32, c: i32) -> i32 {
+    a.min(b.min(c))
 }
 
-pub fn orient2d(a: Vector2<f32>, b: Vector2<f32>, c: Vector2<f32>) -> f32 {
-    (b.x-a.x)*(c.y-a.y) - (b.y-a.y)*(c.x-a.x)
+#[inline]
+pub fn max3(a: i32, b: i32, c: i32) -> i32 {
+    a.max(b.max(c))
 }
 
-pub fn barycentric(triangle: &[Vector3<f32>; 3], point: Vector2<f32>) -> Vector3<f32> {
-    let mut lambda = Vector3::new(0.0, 0.0, 0.0);
-    let den = 1.0
-        / ((triangle[1].y - triangle[2].y) * (triangle[0].x - triangle[2].x)
-            + (triangle[2].x - triangle[1].x) * (triangle[0].y - triangle[2].y));
-
-    lambda.x = ((triangle[1].y - triangle[2].y) * (point.x - triangle[2].x)
-        + (triangle[2].x - triangle[1].x) * (point.y - triangle[2].y))
-        * den;
-    lambda.y = ((triangle[2].y - triangle[0].y) * (point.x - triangle[2].x)
-        + (triangle[0].x - triangle[2].x) * (point.y - triangle[2].y))
-        * den;
-    lambda.z = 1.0 - lambda.x - lambda.y;
-
-    lambda
+#[inline]
+pub fn orient2d(a: Vector2<i32>, b: Vector2<i32>, x: i32, y: i32) -> i32 {
+    (b.x - a.x) * (y - a.y) - (b.y - a.y) * (x - a.x)
 }

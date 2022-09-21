@@ -1,13 +1,13 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
+mod console;
 mod game;
 mod math;
 mod player;
 mod renderer;
 mod wad;
 mod world;
-mod console;
 
 use std::time::Instant;
 

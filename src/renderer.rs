@@ -1,19 +1,11 @@
-use cgmath::{
-    Deg, InnerSpace, Matrix3, Matrix4, SquareMatrix, Vector2, Vector3, Vector4, Zero,
+use cgmath::{Deg, InnerSpace, Matrix3, Matrix4, SquareMatrix, Vector2, Vector3, Vector4, Zero};
+
+use crate::{
+    math::{max3, min3, orient2d},
+    wad::TextureData,
 };
 
-use crate::{is_between, math::barycentric, wad::TextureData};
-
 use super::math::Vertex;
-
-enum FrustumClipMask {
-    PositiveX = 1 << 0,
-    NegativeX = 1 << 1,
-    PositiveY = 1 << 2,
-    NegativeY = 1 << 3,
-    PositiveZ = 1 << 4,
-    NegativeZ = 1 << 5
-}
 
 pub struct Renderer {
     width: usize,
@@ -102,9 +94,7 @@ impl Renderer {
             vs[i].pos.w = 1.0;
         }
 
-        for i in 0..2 {
-
-        }
+        for i in 0..2 {}
 
         let mut dx = vs[1].pos.x - vs[0].pos.x;
         let mut dy = vs[1].pos.y - vs[0].pos.y;
@@ -142,110 +132,127 @@ impl Renderer {
     pub fn draw_triangle(&mut self, v0w: &Vertex, v1w: &Vertex, v2w: &Vertex, frame: &mut [u8]) {
         let mut vs_clip = [*v0w, *v1w, *v2w];
         let mut pos_viewport = [Vector4::zero(), Vector4::zero(), Vector4::zero()];
-        let mut pos_perspective = [Vector3::zero(), Vector3::zero(), Vector3::zero()];
+        let mut pos_screen = [Vector2::zero(), Vector2::zero(), Vector2::zero()];
 
-        let mut completely_obscured = true;
+        // let mut completely_obscured = true;
 
         for i in 0..3 {
             vs_clip[i].pos = self.view_proj_mat * vs_clip[i].pos;
 
-            if (vs_clip[i].pos.z > vs_clip[i].pos.w) || (vs_clip[i].pos.z < -vs_clip[i].pos.w) {
-                return;
-            }
-
             pos_viewport[i] = self.viewport_mat * vs_clip[i].pos;
 
-            pos_perspective[i].x = pos_viewport[i].x / pos_viewport[i].w;
-            pos_perspective[i].y = pos_viewport[i].y / pos_viewport[i].w;
-            pos_perspective[i].z = pos_viewport[i].z / pos_viewport[i].w;
+            pos_screen[i].x = (pos_viewport[i].x / pos_viewport[i].w) as i32;
+            pos_screen[i].y = (pos_viewport[i].y / pos_viewport[i].w) as i32;
+            // pos_screen[i].z = pos_viewport[i].z / pos_viewport[i].w;
 
-            if completely_obscured
-                && is_between!(pos_perspective[i].x, 0.0, self.width_f)
-                && is_between!(pos_perspective[i].y, 0.0, self.height_f)
-            {
-                completely_obscured = false;
-            }
+            // if completely_obscured
+            //     && is_between!(pos_perspective[i].x, 0.0, self.width_f)
+            //     && is_between!(pos_perspective[i].y, 0.0, self.height_f)
+            // {
+            //     completely_obscured = false;
+            // }
         }
 
-        if completely_obscured {
+        if !((vs_clip[0].pos.x >= -vs_clip[0].pos.w
+            && vs_clip[1].pos.x >= -vs_clip[1].pos.w
+            && vs_clip[2].pos.x >= -vs_clip[2].pos.w)
+            && (vs_clip[0].pos.x <= vs_clip[0].pos.w
+                && vs_clip[1].pos.x <= vs_clip[1].pos.w
+                && vs_clip[2].pos.x <= vs_clip[2].pos.w)
+            && (vs_clip[0].pos.y >= -vs_clip[0].pos.w
+                && vs_clip[1].pos.y >= -vs_clip[1].pos.w
+                && vs_clip[2].pos.y >= -vs_clip[2].pos.w)
+            && (vs_clip[0].pos.y <= vs_clip[0].pos.w
+                && vs_clip[1].pos.y <= vs_clip[1].pos.w
+                && vs_clip[2].pos.y <= vs_clip[2].pos.w)
+            && (vs_clip[0].pos.z >= 0.0 && vs_clip[1].pos.z >= 0.0 && vs_clip[2].pos.z >= 0.0)
+            && (vs_clip[0].pos.z <= vs_clip[0].pos.w
+                && vs_clip[1].pos.z <= vs_clip[1].pos.w
+                && vs_clip[2].pos.z <= vs_clip[2].pos.w))
+        {
             return;
         }
 
+        // if completely_obscured {
+        //     return;
+        // }
+
         let has_uv = vs_clip.iter().all(|v| (v.uv.is_some()));
 
-        let mut min_x = f32::MAX;
-        let mut max_x = f32::MIN;
-        let mut min_y = f32::MAX;
-        let mut max_y = f32::MIN;
-        for i in &pos_perspective {
-            min_x = min_x.min(i.x);
-            max_x = max_x.max(i.x);
-            min_y = min_y.min(i.y);
-            max_y = max_y.max(i.y);
-        }
-        let min_x = (min_x - 1.0).clamp(0.0, self.width_f - 1.0) as usize;
-        let max_x = (max_x + 1.0).clamp(0.0, self.width_f - 1.0) as usize;
-        let min_y = (min_y - 1.0).clamp(0.0, self.height_f - 1.0) as usize;
-        let max_y = (max_y + 1.0).clamp(0.0, self.height_f - 1.0) as usize;
+        let min_x = min3(pos_screen[0].x, pos_screen[1].x, pos_screen[2].x); //.clamp(0, self.width - 1);
+        let max_x = max3(pos_screen[0].x, pos_screen[1].x, pos_screen[2].x); //.clamp(0, self.width - 1);
+        let min_y = min3(pos_screen[0].y, pos_screen[1].y, pos_screen[2].y); //.clamp(0, self.height - 1);
+        let max_y = max3(pos_screen[0].y, pos_screen[1].y, pos_screen[2].y); //.clamp(0, self.height - 1);
+
+        let a01 = pos_screen[0].y - pos_screen[1].y;
+        let b01 = pos_screen[1].x - pos_screen[0].x;
+        let a12 = pos_screen[1].y - pos_screen[2].y;
+        let b12 = pos_screen[2].x - pos_screen[1].x;
+        let a20 = pos_screen[2].y - pos_screen[0].y;
+        let b20 = pos_screen[0].x - pos_screen[2].x;
+
+        let mut bc_screen_x_row = orient2d(pos_screen[1], pos_screen[2], min_x, min_y);
+        let mut bc_screen_y_row = orient2d(pos_screen[2], pos_screen[0], min_x, min_y);
+        let mut bc_screen_z_row = orient2d(pos_screen[0], pos_screen[1], min_x, min_y);
 
         for y in min_y..max_y {
+            let mut bc_screen_x = bc_screen_x_row;
+            let mut bc_screen_y = bc_screen_y_row;
+            let mut bc_screen_z = bc_screen_z_row;
+
             for x in min_x..max_x {
-                let index = y * self.width + x;
+                if (bc_screen_x | bc_screen_y | bc_screen_z) >= 0 {
+                    let index = (y as usize) * self.width + (x as usize);
 
-                let bc_screen = barycentric(&pos_perspective, Vector2::new(x as f32, y as f32));
-                let mut bc_clip = Vector3::new(
-                    bc_screen.x / pos_viewport[0].w,
-                    bc_screen.y / pos_viewport[1].w,
-                    bc_screen.z / pos_viewport[2].w,
-                );
-                bc_clip = bc_clip / (bc_clip.x + bc_clip.y + bc_clip.z);
+                    let mut bc_clip = Vector3::new(
+                        bc_screen_x as f32 / pos_viewport[0].w,
+                        bc_screen_y as f32 / pos_viewport[1].w,
+                        bc_screen_z as f32 / pos_viewport[2].w,
+                    );
+                    bc_clip = bc_clip / (bc_clip.x + bc_clip.y + bc_clip.z);
 
-                let frag_depth =
-                    Vector3::new(vs_clip[0].pos.z, vs_clip[1].pos.z, vs_clip[2].pos.z).dot(bc_clip);
+                    let frag_depth =
+                        Vector3::new(vs_clip[0].pos.z, vs_clip[1].pos.z, vs_clip[2].pos.z)
+                            .dot(bc_clip);
 
-                if bc_screen.x < 0.0
-                    || bc_screen.y < 0.0
-                    || bc_screen.z < 0.0
-                    || frag_depth > self.z_buffer[index]
-                {
-                    continue;
+                    if frag_depth < self.z_buffer[index] {
+                        self.z_buffer[index] = frag_depth;
+
+                        let color = if has_uv && self.texture.is_some() {
+                            let uv = Matrix3::from_cols(
+                                vs_clip[0].uv.unwrap().extend(0.0),
+                                vs_clip[1].uv.unwrap().extend(0.0),
+                                vs_clip[2].uv.unwrap().extend(0.0),
+                            ) * bc_clip;
+                            let texture = self.texture.as_ref().unwrap();
+                            let texture_x = (uv.x * (texture.width as f32 - 1.0)).round() as usize;
+                            let texture_y = (uv.y * (texture.height as f32 - 1.0)).round() as usize;
+                            texture.colors[texture_y * texture.width + texture_x]
+                        } else {
+                            (Matrix3::from_cols(
+                                vs_clip[0].color,
+                                vs_clip[1].color,
+                                vs_clip[2].color,
+                            ) * bc_clip)
+                                .map(|c| ((c * 255.0) as u8))
+                        };
+
+                        let pixel_index = index * 4;
+                        frame[pixel_index] = color.x;
+                        frame[pixel_index + 1] = color.y;
+                        frame[pixel_index + 2] = color.z;
+                        frame[pixel_index + 3] = u8::MAX;
+                    }
                 }
 
-                self.z_buffer[index] = frag_depth;
-
-                let color = if has_uv && self.texture.is_some() {
-                    let uv = Matrix3::from_cols(
-                        vs_clip[0].uv.unwrap().extend(0.0),
-                        vs_clip[1].uv.unwrap().extend(0.0),
-                        vs_clip[2].uv.unwrap().extend(0.0),
-                    ) * bc_clip;
-                    let texture = self.texture.as_ref().unwrap();
-                    let texture_x = (uv.x * (texture.width as f32 - 1.0)).round() as usize;
-                    let texture_y = (uv.y * (texture.height as f32 - 1.0)).round() as usize;
-                    texture.colors[texture_y * texture.width + texture_x]
-                } else {
-                    (Matrix3::from_cols(vs_clip[0].color, vs_clip[1].color, vs_clip[2].color)
-                        * bc_clip)
-                        .map(|c| ((c * 255.0) as u8))
-                };
-
-                let pixel_index = index * 4;
-                frame[pixel_index] = color.x;
-                frame[pixel_index + 1] = color.y;
-                frame[pixel_index + 2] = color.z;
-                frame[pixel_index + 3] = u8::MAX;
+                bc_screen_x += a12;
+                bc_screen_y += a20;
+                bc_screen_z += a01;
             }
-        }
-    }
 
-    fn count_frustum_clip_mask(v: &Vector4<f32>) -> i32 {
-        let mut mask = 0;
-        if v.w < v.x {mask |= FrustumClipMask::PositiveX as i32;}
-        if v.w < -v.x {mask |= FrustumClipMask::NegativeX as i32;}
-        if v.w < v.y {mask |= FrustumClipMask::PositiveY as i32;}
-        if v.w < -v.y {mask |= FrustumClipMask::NegativeY as i32;}
-        if v.w < v.z {mask |= FrustumClipMask::PositiveZ as i32;}
-        if v.w < -v.z {mask |= FrustumClipMask::NegativeZ as i32;}
-        mask
+            bc_screen_x_row += b12;
+            bc_screen_y_row += b20;
+            bc_screen_z_row += b01;
+        }
     }
 }

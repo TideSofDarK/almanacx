@@ -41,7 +41,7 @@ impl Player {
         right: bool,
         turn_left: bool,
         turn_right: bool,
-        sprint: bool
+        sprint: bool,
     ) {
         self.sign_z = forward as i16 + -(backward as i16);
         self.sign_x = left as i16 + -(right as i16);

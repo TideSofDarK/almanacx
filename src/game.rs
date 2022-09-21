@@ -23,7 +23,7 @@ pub struct Game {
     renderer: Renderer,
     player: Player,
     world: World,
-    triangles: Vec<(Vertex, Vertex, Vertex)>
+    triangles: Vec<(Vertex, Vertex, Vertex)>,
 }
 
 impl Game {
@@ -74,7 +74,50 @@ impl Game {
                     uv: Some(Vector2::new(0.0, 0.0)),
                 };
 
+                triangles.push((v2, v1, v0));
+            }
+        }
+
+        for x in 0..2 {
+            for z in 0..2 {
+                let offset_x = 0.5 * x as f32;
+                let offset_y = 0.5 * z as f32;
+                let offset_z = ((2 * x) + z) as f32;
+                let v0 = Vertex {
+                    pos: Vector4::new(-0.25 + offset_x, 0.25 + offset_y, offset_z, 1.0),
+                    color: Vector3::new(1.0, 0.0, 0.0),
+                    uv: Some(Vector2::new(1.0, 1.0)),
+                };
+                let v1 = Vertex {
+                    pos: Vector4::new(-0.25 + offset_x, -0.25 + offset_y, offset_z, 1.0),
+                    color: Vector3::new(0.0, 1.0, 0.0),
+                    uv: Some(Vector2::new(1.0, 0.0)),
+                };
+                let v2 = Vertex {
+                    pos: Vector4::new(0.25 + offset_x, -0.25 + offset_y, offset_z, 1.0),
+                    color: Vector3::new(0.0, 0.0, 1.0),
+                    uv: Some(Vector2::new(0.0, 0.0)),
+                };
+
                 triangles.push((v0, v1, v2));
+
+                let v0 = Vertex {
+                    pos: Vector4::new(-0.25 + offset_x, offset_y + 0.25, offset_z, 1.0),
+                    color: Vector3::new(1.0, 0.0, 0.0),
+                    uv: Some(Vector2::new(1.0, 1.0)),
+                };
+                let v1 = Vertex {
+                    pos: Vector4::new(0.25 + offset_x, offset_y + 0.25, offset_z, 1.0),
+                    color: Vector3::new(0.0, 1.0, 0.0),
+                    uv: Some(Vector2::new(0.0, 1.0)),
+                };
+                let v2 = Vertex {
+                    pos: Vector4::new(0.25 + offset_x, offset_y - 0.25, offset_z, 1.0),
+                    color: Vector3::new(0.0, 0.0, 1.0),
+                    uv: Some(Vector2::new(0.0, 0.0)),
+                };
+
+                triangles.push((v2, v1, v0));
             }
         }
 
@@ -83,7 +126,7 @@ impl Game {
             renderer: renderer,
             player: Player::new(),
             world: World::new(map_data),
-            triangles
+            triangles,
         }
     }
 
@@ -99,7 +142,7 @@ impl Game {
             input.key_held(VirtualKeyCode::D),
             input.key_held(VirtualKeyCode::Left),
             input.key_held(VirtualKeyCode::Right),
-            input.key_held(VirtualKeyCode::LShift)
+            input.key_held(VirtualKeyCode::LShift),
         );
 
         if input.key_pressed(VirtualKeyCode::Tab) {
