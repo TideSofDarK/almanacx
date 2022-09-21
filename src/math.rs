@@ -1,24 +1,4 @@
-use cgmath::{Vector2, Vector3, Vector4};
-
-#[macro_export]
-macro_rules! is_between {
-    ($v:expr,$min:expr,$max:expr) => {
-        $v >= $min && $v <= $max
-    };
-}
-
-#[derive(Debug, Copy, Clone)]
-pub struct Vertex {
-    pub pos: Vector4<f32>,
-    pub color: Vector3<f32>,
-    pub uv: Option<Vector2<f32>>,
-}
-
-pub struct VertexHelper {
-    pub pos: Vector4<f32>,
-    pub color: Vector3<f32>,
-    pub uv: Option<Vector2<f32>>,
-}
+use cgmath::{Vector2, Vector3, Vector4, Zero};
 
 // #[derive(Copy, Clone)]
 // pub struct Vector3<S> {

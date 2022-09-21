@@ -1,6 +1,6 @@
-use cgmath::{Vector2, Vector3, Vector4};
+use cgmath::{Vector2, Vector3, Vector4, Zero};
 
-use crate::{math::Vertex, wad::WorldData};
+use crate::{renderer::Vertex, wad::WorldData};
 
 const MAP_SCALE: f32 = 0.01;
 
@@ -21,7 +21,7 @@ impl World {
                     1.0,
                 ),
                 color: Vector3::new(1.0, 1.0, 1.0),
-                uv: None,
+                uv: Vector2::zero(),
             });
         }
 

@@ -5,8 +5,6 @@ use crate::{
     wad::TextureData,
 };
 
-use super::math::Vertex;
-
 pub struct Renderer {
     width: usize,
     height: usize,
@@ -17,6 +15,7 @@ pub struct Renderer {
     proj_mat: Matrix4<f32>,
     viewport_mat: Matrix4<f32>,
     texture: Option<TextureData>,
+    tris_count: i32,
 }
 
 impl Renderer {
@@ -26,8 +25,6 @@ impl Renderer {
 
         let height_size = height as usize;
         let width_size = width as usize;
-
-        let black = Vector3::new(0.0, 0.0, 0.0);
 
         Self {
             width: width as usize,
@@ -44,12 +41,15 @@ impl Renderer {
             },
             view_proj_mat: Matrix4::identity(),
             texture: None,
+            tris_count: 0,
         }
     }
 
     pub fn begin(&mut self, view_mat: Matrix4<f32>) {
         self.view_proj_mat = self.proj_mat * view_mat;
         self.z_buffer.fill(f32::MAX);
+        // println!("{:?}", self.tris_count);
+        self.tris_count = 0;
     }
 
     pub fn set_texture(&mut self, texture_data: TextureData) {
@@ -129,60 +129,34 @@ impl Renderer {
         }
     }
 
-    pub fn draw_triangle(&mut self, v0w: &Vertex, v1w: &Vertex, v2w: &Vertex, frame: &mut [u8]) {
-        let mut vs_clip = [*v0w, *v1w, *v2w];
+    fn rasterize_triangle(&mut self, v0w: Vertex, v1w: Vertex, v2w: Vertex, frame: &mut [u8]) {
+        let vertices: [Vertex; 3] = [v0w, v1w, v2w];
         let mut pos_viewport = [Vector4::zero(), Vector4::zero(), Vector4::zero()];
         let mut pos_screen = [Vector2::zero(), Vector2::zero(), Vector2::zero()];
 
-        // let mut completely_obscured = true;
-
         for i in 0..3 {
-            vs_clip[i].pos = self.view_proj_mat * vs_clip[i].pos;
-
-            pos_viewport[i] = self.viewport_mat * vs_clip[i].pos;
+            pos_viewport[i] = self.viewport_mat * vertices[i].pos;
 
             pos_screen[i].x = (pos_viewport[i].x / pos_viewport[i].w) as i32;
             pos_screen[i].y = (pos_viewport[i].y / pos_viewport[i].w) as i32;
             // pos_screen[i].z = pos_viewport[i].z / pos_viewport[i].w;
-
-            // if completely_obscured
-            //     && is_between!(pos_perspective[i].x, 0.0, self.width_f)
-            //     && is_between!(pos_perspective[i].y, 0.0, self.height_f)
-            // {
-            //     completely_obscured = false;
-            // }
         }
 
-        if !((vs_clip[0].pos.x >= -vs_clip[0].pos.w
-            && vs_clip[1].pos.x >= -vs_clip[1].pos.w
-            && vs_clip[2].pos.x >= -vs_clip[2].pos.w)
-            && (vs_clip[0].pos.x <= vs_clip[0].pos.w
-                && vs_clip[1].pos.x <= vs_clip[1].pos.w
-                && vs_clip[2].pos.x <= vs_clip[2].pos.w)
-            && (vs_clip[0].pos.y >= -vs_clip[0].pos.w
-                && vs_clip[1].pos.y >= -vs_clip[1].pos.w
-                && vs_clip[2].pos.y >= -vs_clip[2].pos.w)
-            && (vs_clip[0].pos.y <= vs_clip[0].pos.w
-                && vs_clip[1].pos.y <= vs_clip[1].pos.w
-                && vs_clip[2].pos.y <= vs_clip[2].pos.w)
-            && (vs_clip[0].pos.z >= 0.0 && vs_clip[1].pos.z >= 0.0 && vs_clip[2].pos.z >= 0.0)
-            && (vs_clip[0].pos.z <= vs_clip[0].pos.w
-                && vs_clip[1].pos.z <= vs_clip[1].pos.w
-                && vs_clip[2].pos.z <= vs_clip[2].pos.w))
+        if (pos_screen[1].x - pos_screen[0].x) * (pos_screen[2].y - pos_screen[0].y)
+            - (pos_screen[1].y - pos_screen[0].y) * (pos_screen[2].x - pos_screen[0].x)
+            < 0
         {
             return;
         }
 
-        // if completely_obscured {
-        //     return;
-        // }
-
-        let has_uv = vs_clip.iter().all(|v| (v.uv.is_some()));
-
-        let min_x = min3(pos_screen[0].x, pos_screen[1].x, pos_screen[2].x); //.clamp(0, self.width - 1);
-        let max_x = max3(pos_screen[0].x, pos_screen[1].x, pos_screen[2].x); //.clamp(0, self.width - 1);
-        let min_y = min3(pos_screen[0].y, pos_screen[1].y, pos_screen[2].y); //.clamp(0, self.height - 1);
-        let max_y = max3(pos_screen[0].y, pos_screen[1].y, pos_screen[2].y); //.clamp(0, self.height - 1);
+        let min_x =
+            min3(pos_screen[0].x, pos_screen[1].x, pos_screen[2].x).clamp(0, self.width as i32 - 1);
+        let max_x =
+            max3(pos_screen[0].x, pos_screen[1].x, pos_screen[2].x).clamp(0, self.width as i32 - 1);
+        let min_y = min3(pos_screen[0].y, pos_screen[1].y, pos_screen[2].y)
+            .clamp(0, self.height as i32 - 1);
+        let max_y = max3(pos_screen[0].y, pos_screen[1].y, pos_screen[2].y)
+            .clamp(0, self.height as i32 - 1);
 
         let a01 = pos_screen[0].y - pos_screen[1].y;
         let b01 = pos_screen[1].x - pos_screen[0].x;
@@ -212,17 +186,17 @@ impl Renderer {
                     bc_clip = bc_clip / (bc_clip.x + bc_clip.y + bc_clip.z);
 
                     let frag_depth =
-                        Vector3::new(vs_clip[0].pos.z, vs_clip[1].pos.z, vs_clip[2].pos.z)
+                        Vector3::new(vertices[0].pos.z, vertices[1].pos.z, vertices[2].pos.z)
                             .dot(bc_clip);
 
                     if frag_depth < self.z_buffer[index] {
                         self.z_buffer[index] = frag_depth;
 
-                        let color = if has_uv && self.texture.is_some() {
+                        let color = if self.texture.is_some() {
                             let uv = Matrix3::from_cols(
-                                vs_clip[0].uv.unwrap().extend(0.0),
-                                vs_clip[1].uv.unwrap().extend(0.0),
-                                vs_clip[2].uv.unwrap().extend(0.0),
+                                vertices[0].uv.extend(0.0),
+                                vertices[1].uv.extend(0.0),
+                                vertices[2].uv.extend(0.0),
                             ) * bc_clip;
                             let texture = self.texture.as_ref().unwrap();
                             let texture_x = (uv.x * (texture.width as f32 - 1.0)).round() as usize;
@@ -230,9 +204,9 @@ impl Renderer {
                             texture.colors[texture_y * texture.width + texture_x]
                         } else {
                             (Matrix3::from_cols(
-                                vs_clip[0].color,
-                                vs_clip[1].color,
-                                vs_clip[2].color,
+                                vertices[0].color,
+                                vertices[1].color,
+                                vertices[2].color,
                             ) * bc_clip)
                                 .map(|c| ((c * 255.0) as u8))
                         };
@@ -253,6 +227,106 @@ impl Renderer {
             bc_screen_x_row += b12;
             bc_screen_y_row += b20;
             bc_screen_z_row += b01;
+        }
+
+        self.tris_count += 1;
+    }
+
+    fn clip_vertices(
+        &mut self,
+        v0: &Vertex,
+        v1: &Vertex,
+        ok0: bool,
+        ok1: bool,
+        clipped: &mut [Vertex; 4],
+        clipped_count: &mut usize,
+    ) {
+        if ok0 && ok1 {
+            clipped[*clipped_count] = *v0;
+            *clipped_count += 1;
+        } else if ok0 && !ok1 {
+            clipped[*clipped_count] = *v0;
+            *clipped_count += 1;
+
+            let diff = v1.pos - v0.pos;
+            let t = -v0.pos.z / diff.z;
+
+            let ref mut vertex = clipped[*clipped_count];
+            *clipped_count += 1;
+
+            vertex.pos = v0.pos + diff * t;
+            vertex.uv = v0.uv + (v1.uv - v0.uv) * t;
+            vertex.color = v0.color + (v1.color - v0.color) * t;
+        } else if !ok0 && ok1 {
+            let diff = v1.pos - v0.pos;
+            let t = -v0.pos.z / diff.z;
+
+            let ref mut vertex = clipped[*clipped_count];
+            *clipped_count += 1;
+
+            vertex.pos = v0.pos + diff * t;
+            vertex.uv = v0.uv + (v1.uv - v0.uv) * t;
+            vertex.color = v0.color + (v1.color - v0.color) * t;
+        }
+    }
+
+    pub fn draw_triangle(&mut self, v0w: &Vertex, v1w: &Vertex, v2w: &Vertex, frame: &mut [u8]) {
+        let mut vs = [*v0w, *v1w, *v2w];
+
+        for i in 0..3 {
+            vs[i].pos = self.view_proj_mat * vs[i].pos;
+        }
+
+        let mut clipped_count = 0;
+        let mut clipped = [Vertex::empty(); 4];
+
+        self.clip_vertices(
+            &vs[0],
+            &vs[1],
+            vs[0].pos.z > 0.0,
+            vs[1].pos.z > 0.0,
+            &mut clipped,
+            &mut clipped_count,
+        );
+        self.clip_vertices(
+            &vs[1],
+            &vs[2],
+            vs[1].pos.z > 0.0,
+            vs[2].pos.z > 0.0,
+            &mut clipped,
+            &mut clipped_count,
+        );
+        self.clip_vertices(
+            &vs[2],
+            &vs[0],
+            vs[2].pos.z > 0.0,
+            vs[0].pos.z > 0.0,
+            &mut clipped,
+            &mut clipped_count,
+        );
+
+        if clipped_count == 3 {
+            self.rasterize_triangle(clipped[0], clipped[1], clipped[2], frame);
+        } else if clipped_count == 4 {
+            self.rasterize_triangle(clipped[0], clipped[1], clipped[3], frame);
+            self.rasterize_triangle(clipped[1], clipped[2], clipped[3], frame);
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct Vertex {
+    pub pos: Vector4<f32>,
+    pub color: Vector3<f32>,
+    pub uv: Vector2<f32>,
+}
+
+impl Vertex {
+    pub fn empty() -> Self {
+        Self {
+            pos: Vector4::zero(),
+            color: Vector3::zero(),
+            uv: Vector2::zero(),
         }
     }
 }
