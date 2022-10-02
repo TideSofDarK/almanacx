@@ -114,7 +114,6 @@ impl WAD {
                             c += 1;
                         }
                     }
-                    _ => unreachable!(),
                 }
                 i += 1;
             }

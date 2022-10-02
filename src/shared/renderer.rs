@@ -1,6 +1,8 @@
+mod texture;
+
 use cgmath::{Deg, InnerSpace, Matrix3, Matrix4, SquareMatrix, Vector2, Vector3, Vector4, Zero};
 
-use crate::{
+use super::{
     math::{max3, min3, orient2d},
     wad::TextureData,
 };
@@ -52,8 +54,12 @@ impl Renderer {
         self.tris_count = 0;
     }
 
-    pub fn set_texture(&mut self, texture_data: TextureData) {
-        self.texture = Some(texture_data);
+    pub fn set_texture(&mut self, texture_data: Option<TextureData>) {
+        self.texture = texture_data;
+    }
+
+    pub fn take_texture(&mut self) -> Option<TextureData> {
+        self.texture.take()
     }
 
     pub fn draw_gizmo(&mut self, vw: Vertex, frame: &mut [u8]) {
@@ -192,23 +198,25 @@ impl Renderer {
                     if frag_depth < self.z_buffer[index] {
                         self.z_buffer[index] = frag_depth;
 
-                        let color = if self.texture.is_some() {
-                            let uv = Matrix3::from_cols(
-                                vertices[0].uv.extend(0.0),
-                                vertices[1].uv.extend(0.0),
-                                vertices[2].uv.extend(0.0),
-                            ) * bc_clip;
-                            let texture = self.texture.as_ref().unwrap();
-                            let texture_x = (uv.x * (texture.width as f32 - 1.0)).round() as usize;
-                            let texture_y = (uv.y * (texture.height as f32 - 1.0)).round() as usize;
-                            texture.colors[texture_y * texture.width + texture_x]
-                        } else {
-                            (Matrix3::from_cols(
+                        let color = match self.texture {
+                            Some(ref texture) => {
+                                let uv = Matrix3::from_cols(
+                                    vertices[0].uv.extend(0.0),
+                                    vertices[1].uv.extend(0.0),
+                                    vertices[2].uv.extend(0.0),
+                                ) * bc_clip;
+                                let texture_x =
+                                    (uv.x * (texture.width as f32 - 1.0)).round() as usize;
+                                let texture_y =
+                                    (uv.y * (texture.height as f32 - 1.0)).round() as usize;
+                                texture.colors[texture_y * texture.width + texture_x]
+                            }
+                            None => (Matrix3::from_cols(
                                 vertices[0].color,
                                 vertices[1].color,
                                 vertices[2].color,
                             ) * bc_clip)
-                                .map(|c| ((c * 255.0) as u8))
+                                .map(|c| ((c * 255.0) as u8)),
                         };
 
                         let pixel_index = index * 4;
@@ -236,28 +244,21 @@ impl Renderer {
         &mut self,
         v0: &Vertex,
         v1: &Vertex,
-        ok0: bool,
-        ok1: bool,
         clipped: &mut [Vertex; 4],
         clipped_count: &mut usize,
     ) {
-        if ok0 && ok1 {
+        let ok0 = v0.pos.z > 0.0;
+        let ok1 = v1.pos.z > 0.0;
+
+        if ok0 & ok1 {
             clipped[*clipped_count] = *v0;
             *clipped_count += 1;
-        } else if ok0 && !ok1 {
-            clipped[*clipped_count] = *v0;
-            *clipped_count += 1;
+        } else if ok0 ^ ok1 {
+            if ok0 {
+                clipped[*clipped_count] = *v0;
+                *clipped_count += 1;
+            }
 
-            let diff = v1.pos - v0.pos;
-            let t = -v0.pos.z / diff.z;
-
-            let ref mut vertex = clipped[*clipped_count];
-            *clipped_count += 1;
-
-            vertex.pos = v0.pos + diff * t;
-            vertex.uv = v0.uv + (v1.uv - v0.uv) * t;
-            vertex.color = v0.color + (v1.color - v0.color) * t;
-        } else if !ok0 && ok1 {
             let diff = v1.pos - v0.pos;
             let t = -v0.pos.z / diff.z;
 
@@ -280,30 +281,9 @@ impl Renderer {
         let mut clipped_count = 0;
         let mut clipped = [Vertex::empty(); 4];
 
-        self.clip_vertices(
-            &vs[0],
-            &vs[1],
-            vs[0].pos.z > 0.0,
-            vs[1].pos.z > 0.0,
-            &mut clipped,
-            &mut clipped_count,
-        );
-        self.clip_vertices(
-            &vs[1],
-            &vs[2],
-            vs[1].pos.z > 0.0,
-            vs[2].pos.z > 0.0,
-            &mut clipped,
-            &mut clipped_count,
-        );
-        self.clip_vertices(
-            &vs[2],
-            &vs[0],
-            vs[2].pos.z > 0.0,
-            vs[0].pos.z > 0.0,
-            &mut clipped,
-            &mut clipped_count,
-        );
+        self.clip_vertices(&vs[0], &vs[1], &mut clipped, &mut clipped_count);
+        self.clip_vertices(&vs[1], &vs[2], &mut clipped, &mut clipped_count);
+        self.clip_vertices(&vs[2], &vs[0], &mut clipped, &mut clipped_count);
 
         if clipped_count == 3 {
             self.rasterize_triangle(clipped[0], clipped[1], clipped[2], frame);

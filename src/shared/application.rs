@@ -1,37 +1,33 @@
-#![deny(clippy::all)]
-#![forbid(unsafe_code)]
+use std::{time::Instant};
 
-mod console;
-mod game;
-mod math;
-mod player;
-mod renderer;
-mod wad;
-mod world;
-
-use std::time::Instant;
-
-use console::Console;
-use game::Game;
 use log::error;
 use pixels::{Error, Pixels, SurfaceTexture};
-use winit::dpi::PhysicalSize;
-use winit::event::{Event, VirtualKeyCode};
-use winit::event_loop::{ControlFlow, EventLoop};
-use winit::window::WindowBuilder;
+use winit::{
+    dpi::PhysicalSize,
+    event::{Event, VirtualKeyCode},
+    event_loop::{ControlFlow, EventLoop},
+    window::WindowBuilder,
+};
 use winit_input_helper::WinitInputHelper;
 
-const WIDTH: u32 = 640;
-const HEIGHT: u32 = 360;
+pub trait Application {
+    fn get_window_name(&self) -> &'static str;
+    fn handle_input(&mut self, input: &WinitInputHelper);
+    fn update(&mut self, dt: f32);
+    fn draw(&mut self, frame: &mut [u8]);
+}
 
-fn main() -> Result<(), Error> {
-    env_logger::init();
+pub fn init_application(
+    width: u32,
+    height: u32,
+    mut app: impl Application + 'static,
+) -> Result<(), Error> {
     let event_loop = EventLoop::new();
     let mut input = WinitInputHelper::new();
     let window = {
-        let size = PhysicalSize::new(WIDTH * 2, HEIGHT * 2);
+        let size = PhysicalSize::new(width * 2, height * 2);
         WindowBuilder::new()
-            .with_title("Almanac10")
+            .with_title(app.get_window_name())
             .with_inner_size(size)
             .with_min_inner_size(size)
             .with_resizable(false)
@@ -42,11 +38,8 @@ fn main() -> Result<(), Error> {
     let mut pixels = {
         let window_size = window.inner_size();
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
-        Pixels::new(WIDTH, HEIGHT, surface_texture)?
+        Pixels::new(width, height, surface_texture)?
     };
-
-    let mut game = Game::new();
-    let mut console = Console::new(WIDTH, HEIGHT);
 
     let mut dt = 0.0;
     let mut last_frame = Instant::now();
@@ -55,8 +48,7 @@ fn main() -> Result<(), Error> {
         if let Event::RedrawRequested(_) = event {
             let frame = pixels.get_frame();
             frame.fill(0x00);
-            game.draw(frame);
-            console.draw(frame);
+            app.draw(frame);
 
             if pixels
                 .render()
@@ -69,6 +61,11 @@ fn main() -> Result<(), Error> {
         }
 
         if input.update(&event) {
+            if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
+                *control_flow = ControlFlow::Exit;
+                return;
+            }
+
             if let Some(size) = input.window_resized() {
                 pixels.resize_surface(size.width, size.height);
             }
@@ -76,24 +73,12 @@ fn main() -> Result<(), Error> {
             dt = last_frame.elapsed().as_secs_f32();
             last_frame = Instant::now();
 
-            if input.key_pressed(VirtualKeyCode::Grave) {
-                console.toggle();
-            }
-
-            if input.key_pressed(VirtualKeyCode::B) {
+            if input.key_pressed(VirtualKeyCode::F12) {
                 println!("{:?}", dt);
             }
 
-            if console.is_open() {
-                console.handle_input(&input);
-            } else {
-                if game.handle_input(&input) {
-                    *control_flow = ControlFlow::Exit;
-                }
-            }
-
-            console.update(dt);
-            game.update(dt);
+            app.handle_input(&input);
+            app.update(dt);
 
             window.request_redraw();
         }

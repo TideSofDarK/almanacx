@@ -1,6 +1,5 @@
+use almanac10::{renderer::Vertex, wad::WorldData};
 use cgmath::{Vector2, Vector3, Vector4, Zero};
-
-use crate::{renderer::Vertex, wad::WorldData};
 
 const MAP_SCALE: f32 = 0.01;
 

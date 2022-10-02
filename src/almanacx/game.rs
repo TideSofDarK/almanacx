@@ -1,17 +1,12 @@
-use std::time::Instant;
-
+use almanac10::{
+    renderer::{Renderer, Vertex},
+    wad::{self, TextureData},
+};
 use cgmath::{Vector2, Vector3, Vector4};
 use winit::event::VirtualKeyCode;
 use winit_input_helper::WinitInputHelper;
 
-use crate::{
-    player::Player,
-    renderer::Renderer,
-    renderer::Vertex,
-    wad::{self},
-    world::World,
-    HEIGHT, WIDTH,
-};
+use crate::{player::Player, world::World, HEIGHT, WIDTH};
 
 enum GameState {
     Action,
@@ -24,6 +19,7 @@ pub struct Game {
     player: Player,
     world: World,
     triangles: Vec<(Vertex, Vertex, Vertex)>,
+    texture: Option<TextureData>,
 }
 
 impl Game {
@@ -32,11 +28,10 @@ impl Game {
         let map_data = wad.get_map_data("E1M1").expect("no such map");
 
         let mut renderer = Renderer::new(WIDTH, HEIGHT);
-        renderer.set_texture(wad.get_texture_data("WALL03_7"));
 
         let mut triangles: Vec<(Vertex, Vertex, Vertex)> = vec![];
-        for x in 0..2 {
-            for z in 0..2 {
+        for x in 0..5 {
+            for z in 0..5 {
                 let offset_x = 0.5 * x as f32 + 3.0;
                 let offset_z = 0.5 * z as f32 + 3.0;
                 let offset_y = 0.0 + 0.0;
@@ -126,7 +121,8 @@ impl Game {
             renderer: renderer,
             player: Player::new(),
             world: World::new(map_data),
-            triangles,
+            triangles: triangles,
+            texture: Some(wad.get_texture_data("WALL03_7")),
         }
     }
 
@@ -152,12 +148,12 @@ impl Game {
             }
         }
 
-        // if input.key_pressed(VirtualKeyCode::Key1) {
-        //     self.renderer.set_texture(*self.texture);
-        // }
+        if input.key_pressed(VirtualKeyCode::Z) {
+            self.renderer.set_texture(self.texture.take());
+        }
 
-        if input.key_pressed(VirtualKeyCode::Key1) {
-            // self.renderer.set_texture(*self.texture);
+        if input.key_pressed(VirtualKeyCode::X) {
+            self.texture = self.renderer.take_texture();
         }
 
         false
