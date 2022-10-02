@@ -1,8 +1,8 @@
-use almanac10::{
+use cgmath::{Vector2, Vector3, Vector4};
+use common::{
     renderer::{Renderer, Vertex},
     wad::{self, TextureData},
 };
-use cgmath::{Vector2, Vector3, Vector4};
 use winit::event::VirtualKeyCode;
 use winit_input_helper::WinitInputHelper;
 

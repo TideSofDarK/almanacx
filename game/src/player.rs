@@ -1,7 +1,6 @@
 use cgmath::{Matrix4, Point3, Rad, Vector3};
 
 pub struct Player {
-    angle: f32,
     walk_speed: f32,
     turn_speed: f32,
 
@@ -16,7 +15,6 @@ pub struct Player {
 impl Player {
     pub fn new() -> Self {
         Self {
-            angle: 0.0,
             walk_speed: 1.75,
             turn_speed: 1.5,
 

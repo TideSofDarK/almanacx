@@ -1,22 +1,14 @@
-[package]
-name = "almanac10"
-version = "0.0.1"
+[workspace]
+members = ["common", "game", "editor"]
+default-members = ["game", "editor"]
+resolver = "2"
+
+[workspace.package]
 edition = "2021"
 
-[dependencies]
+[workspace.dependencies]
 log = "0.4"
 pixels = "0.9"
 winit = "0.27.3"
 winit_input_helper = "0.13"
 cgmath = "0.18.0"
-
-[lib]
-path = "src/shared/shared.rs" 
-
-[[bin]]
-name = "almanacx"
-path = "src/almanacx/almanacx.rs" 
-
-[[bin]]
-name = "quill"
-path = "src/quill/quill.rs"
