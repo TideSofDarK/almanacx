@@ -51,5 +51,5 @@ fn main() {
             console: Console::new(WIDTH, HEIGHT),
         },
     )
-    .expect("")
+    .unwrap_or_default()
 }

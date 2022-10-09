@@ -9,7 +9,7 @@ impl Texture {
         Self {
             width: width,
             height: height,
-            colors: colors
+            colors: colors,
         }
     }
 }

@@ -7,11 +7,11 @@
     {
       "type": "lldb",
       "request": "launch",
-      "name": "Debug executable 'almanac10'",
+      "name": "Debug executable 'game'",
       "cargo": {
-        "args": ["build", "--bin=almanac10", "--package=almanac10"],
+        "args": ["build", "--bin=game", "--package=game"],
         "filter": {
-          "name": "almanac10",
+          "name": "game",
           "kind": "bin"
         }
       },
@@ -21,11 +21,11 @@
     {
       "type": "lldb",
       "request": "launch",
-      "name": "Debug unit tests in executable 'almanac10'",
+      "name": "Debug unit tests in executable 'game'",
       "cargo": {
-        "args": ["test", "--no-run", "--bin=almanac10", "--package=almanac10"],
+        "args": ["test", "--no-run", "--bin=game", "--package=game"],
         "filter": {
-          "name": "almanac10",
+          "name": "game",
           "kind": "bin"
         }
       },

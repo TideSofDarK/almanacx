@@ -1,5 +1,5 @@
-use common::{renderer::Vertex, wad::WorldData};
 use cgmath::{Vector2, Vector3, Vector4, Zero};
+use common::{renderer::Vertex, wad::WorldData};
 
 const MAP_SCALE: f32 = 0.01;
 

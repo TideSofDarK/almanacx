@@ -1,6 +1,5 @@
 [workspace]
 members = ["common", "game", "editor"]
-default-members = ["game", "editor"]
 resolver = "2"
 
 [workspace.package]
@@ -12,3 +11,9 @@ pixels = "0.9"
 winit = "0.27.3"
 winit_input_helper = "0.13"
 cgmath = "0.18.0"
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3

@@ -1,4 +1,5 @@
 mod png;
+mod view;
 
 use common::{
     application::{init_application, Application},
@@ -40,5 +41,5 @@ fn main() {
             console: Console::new(WIDTH, HEIGHT),
         },
     )
-    .expect("")
+    .unwrap_or_default()
 }

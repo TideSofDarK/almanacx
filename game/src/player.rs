@@ -1,4 +1,5 @@
 use cgmath::{Matrix4, Point3, Rad, Vector3};
+use common::renderer::camera::Camera;
 
 pub struct Player {
     walk_speed: f32,
@@ -23,10 +24,10 @@ impl Player {
             sign_angle: 0,
             sprint: 1.0,
 
-            view: Matrix4::look_to_rh(
+            view: Matrix4::look_to_lh(
                 Point3::new(0.0, 0.5, 0.0),
-                Vector3::unit_z(),
-                Vector3::unit_y(),
+                -Vector3::unit_z(),
+                -Vector3::unit_y(),
             ),
         }
     }
@@ -65,7 +66,7 @@ impl Player {
         self.sprint = 1.0;
     }
 
-    pub fn get_view_matrix(&mut self) -> Matrix4<f32> {
-        self.view
+    pub fn get_view(&mut self) -> &Matrix4<f32> {
+        &self.view
     }
 }
