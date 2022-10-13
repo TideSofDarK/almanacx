@@ -67,6 +67,8 @@ impl<'d, 'r> RenderContext3D<'d, 'r> {
     fn transform_viewport(&self, pos: &mut Vector4<f32>) {
         pos.x = pos.x * self.viewport.x as f32 + self.viewport.z;
         pos.y = pos.y * self.viewport.y as f32 + self.viewport.w;
+        pos.x = pos.x.round();
+        pos.y = pos.y.round();
 
         // pos.z = 0.5 * (depth_range.sum - depth_range.diff * pos.z);
     }
@@ -109,6 +111,21 @@ impl<'d, 'r> RenderContext3D<'d, 'r> {
         self.perspective_division(&mut p0);
         self.perspective_division(&mut p1);
 
+        // println!("{:?}", p0);
+        // println!("{:?}", p1);
+
+        if p0.x < -1.01
+            || p0.x > 1.01
+            || p0.y < -1.01
+            || p0.y > 1.01
+            || p1.x < -1.01
+            || p1.x > 1.01
+            || p1.y < -1.01
+            || p1.y > 1.01
+        {
+            return;
+        }
+
         self.transform_viewport(&mut p0);
         self.transform_viewport(&mut p1);
 
@@ -135,8 +152,7 @@ impl<'d, 'r> RenderContext3D<'d, 'r> {
         // self.frame_buffer
         //     .draw_line_2d(pos_screen[2], pos_screen[0], Vector3::new(255, 255, 255));
 
-        let pos_screen =
-            pos_screen.map(|pos| Vector2::new((pos.x + 0.5) as i32, (pos.y + 0.5) as i32));
+        let pos_screen = pos_screen.map(|pos| Vector2::new(pos.x as i32, pos.y as i32));
 
         // CW backface culling
         if (pos_screen[1].x - pos_screen[0].x) * (pos_screen[2].y - pos_screen[0].y)

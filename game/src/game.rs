@@ -207,6 +207,22 @@ impl Application for Game {
 
         draw_grid(&mut ctx, Vector3::<f32>::zero(), 0.5);
 
+        ctx.draw_line(
+            Vector4 {
+                x: -8.0,
+                y: 0.0,
+                z: 0.0,
+                w: 1.0,
+            },
+            Vector4 {
+                x: 8.0,
+                y: 0.0,
+                z: 0.0,
+                w: 1.0,
+            },
+            Vector3::new(255, 255, 255),
+        );
+
         match self.game_state {
             GameState::Action => {
                 for (v0, v1, v2) in &self.triangles {
