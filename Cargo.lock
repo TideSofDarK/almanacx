@@ -202,7 +202,6 @@ name = "common"
 version = "0.0.1"
 dependencies = [
  "cgmath",
- "log",
  "pixels",
  "winit",
  "winit_input_helper",
@@ -391,6 +390,7 @@ name = "editor"
 version = "0.0.1"
 dependencies = [
  "common",
+ "pixels",
  "winit",
  "winit_input_helper",
 ]
@@ -500,6 +500,7 @@ version = "0.0.1"
 dependencies = [
  "cgmath",
  "common",
+ "pixels",
  "winit",
  "winit_input_helper",
 ]
@@ -1022,9 +1023,9 @@ dependencies = [
 
 [[package]]
 name = "profiling"
-version = "1.0.6"
+version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f61dcf0b917cd75d4521d7343d1ffff3d1583054133c9b5cbea3375c703c40d"
+checksum = "74605f360ce573babfe43964cbe520294dcb081afbf8c108fc6e23036b4da2df"
 
 [[package]]
 name = "quote"
@@ -1640,9 +1641,9 @@ checksum = "c811ca4a8c853ef420abd8592ba53ddbbac90410fab6903b3e79972a631f7680"
 
 [[package]]
 name = "winit"
-version = "0.27.3"
+version = "0.27.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a22e94ba35ca3ff11820044bfa0dc48b95a3a15569c0068555566a12ef41c9e5"
+checksum = "37f64802920c4c35d12a53dad5e0c55bbc3004d8dc4f2e4dd64ad02c5665d7aa"
 dependencies = [
  "bitflags",
  "cocoa",

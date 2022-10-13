@@ -1,4 +1,4 @@
-use cgmath::{Matrix4, Zero};
+use cgmath::{InnerSpace, Matrix4, SquareMatrix, Vector3, Zero};
 
 use crate::math::perspective;
 
@@ -30,4 +30,14 @@ impl Camera {
     pub fn get_projection(&self) -> &Matrix4<f32> {
         &self.proj
     }
+
+    // pub fn get_view(
+    //     &self,
+    //     eye: Vector3<f32>,
+    //     center: Vector3<f32>,
+    //     up: Vector3<f32>,
+    // ) -> Matrix4<f32> {
+
+    //     look_at_rh(eye, center, up)
+    // }
 }

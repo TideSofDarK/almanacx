@@ -1,12 +1,21 @@
 use cgmath::{Vector2, Vector3, Vector4, Zero};
 use common::{
+    application::Application,
+    draw_target::DrawTarget,
     renderer::{camera::Camera, utils::draw_grid, Renderer, Vertex},
+    virtual_window::VirtualWindow,
     wad::{self, TextureData},
 };
 use winit::event::VirtualKeyCode;
 use winit_input_helper::WinitInputHelper;
 
-use crate::{player::Player, world::World, HEIGHT, WIDTH};
+use crate::{player::Player, world::World};
+
+const PRIMARY_WIDTH: usize = 640;
+const PRIMARY_HEIGHT: usize = 480;
+
+const REFERENCE_WIDTH: usize = 960;
+const REFERENCE_HEIGHT: usize = 540;
 
 enum GameState {
     Action,
@@ -14,6 +23,7 @@ enum GameState {
 }
 
 pub struct Game {
+    primary_window: VirtualWindow,
     game_state: GameState,
     renderer: Renderer,
     camera: Camera,
@@ -28,12 +38,12 @@ impl Game {
         let wad = wad::load("./assets/DOOM1.WAD").expect("no such wad file");
         let map_data = wad.get_map_data("E1M1").expect("no such map");
 
-        let renderer = Renderer::new(WIDTH, HEIGHT);
+        let renderer = Renderer::new(PRIMARY_WIDTH, PRIMARY_HEIGHT);
         let mut camera = Camera::new();
         camera.set_perspective(
             f32::to_radians(60.0),
-            WIDTH as f32 / HEIGHT as f32,
-            0.01,
+            PRIMARY_WIDTH as f32 / PRIMARY_HEIGHT as f32,
+            0.1,
             100.0,
         );
 
@@ -59,7 +69,7 @@ impl Game {
                     uv: Vector2::new(0.0, 0.0),
                 };
 
-                triangles.push((v0, v1, v2));
+                triangles.push((v2, v1, v0));
 
                 let v0 = Vertex {
                     pos: Vector4::new(-0.25 + offset_x, offset_y, offset_z + 0.25, 1.0),
@@ -77,12 +87,12 @@ impl Game {
                     uv: Vector2::new(0.0, 0.0),
                 };
 
-                triangles.push((v2, v1, v0));
+                triangles.push((v0, v1, v2));
             }
         }
 
-        for x in 0..4 {
-            for z in 0..4 {
+        for x in 0..5 {
+            for z in 0..5 {
                 let offset_x = 0.5 * x as f32;
                 let offset_y = 0.5 * z as f32;
                 let offset_z = ((2 * x) + z) as f32;
@@ -124,7 +134,16 @@ impl Game {
             }
         }
 
+        let primary_window_x = (REFERENCE_WIDTH - PRIMARY_WIDTH) / 2;
+        let primary_window_y = (REFERENCE_HEIGHT - PRIMARY_HEIGHT) / 2;
+
         Self {
+            primary_window: VirtualWindow::new(
+                primary_window_x,
+                primary_window_y,
+                PRIMARY_WIDTH,
+                PRIMARY_HEIGHT,
+            ),
             game_state: GameState::Action,
             renderer: renderer,
             camera: camera,
@@ -134,12 +153,14 @@ impl Game {
             texture: Some(wad.get_texture_data("WALL03_7")),
         }
     }
+}
 
-    pub fn handle_input(&mut self, input: &WinitInputHelper) -> bool {
-        if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
-            return true;
-        }
+impl Application for Game {
+    fn get_name(&self) -> &'static str {
+        "Almanac X"
+    }
 
+    fn handle_input(&mut self, input: &WinitInputHelper) {
         self.player.handle_input(
             input.key_held(VirtualKeyCode::W),
             input.key_held(VirtualKeyCode::S),
@@ -149,6 +170,10 @@ impl Game {
             input.key_held(VirtualKeyCode::Right),
             input.key_held(VirtualKeyCode::LShift),
         );
+
+        // if input.key_pressed(VirtualKeyCode::F11) {
+        //     println!("{:?}", self.renderer.get_tris_count());
+        // }
 
         if input.key_pressed(VirtualKeyCode::Tab) {
             self.game_state = match self.game_state {
@@ -164,23 +189,23 @@ impl Game {
         // if input.key_pressed(VirtualKeyCode::X) {
         //     self.texture = self.renderer.take_texture();
         // }
-
-        false
     }
 
-    pub fn update(&mut self, dt: f32) {
+    fn update(&mut self, dt: f32) {
         self.player.update(dt);
     }
 
-    pub fn draw(&mut self, frame: &mut [u8]) {
-        let mut ctx = self.renderer.begin_3d(
-            self.camera.get_projection(),
-            self.player.get_view(),
-            frame,
-            Vector4::new(0.0, 0.0, WIDTH as f32, HEIGHT as f32),
+    fn draw(&mut self, target: &mut DrawTarget<'_>) {
+        self.renderer.begin();
+
+        let mut primary_window_target = self.primary_window.get_draw_target();
+        primary_window_target.clear();
+        let mut ctx = self.renderer.create_context_3d(
+            self.camera.get_projection() * self.player.get_view(),
+            &mut primary_window_target,
         );
 
-        // draw_grid(&mut ctx, Vector3::<f32>::zero(), 0.5);
+        draw_grid(&mut ctx, Vector3::<f32>::zero(), 0.5);
 
         match self.game_state {
             GameState::Action => {
@@ -203,5 +228,13 @@ impl Game {
                 }
             }
         }
+
+        self.primary_window.draw(target);
+    }
+
+    fn resize_window(&mut self, width: u32, height: u32) {}
+
+    fn get_reference_dimensions(&self) -> Option<(u32, u32)> {
+        Some((REFERENCE_WIDTH as u32, REFERENCE_HEIGHT as u32))
     }
 }

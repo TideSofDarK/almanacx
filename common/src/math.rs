@@ -1,4 +1,4 @@
-use cgmath::{Matrix4, SquareMatrix, Vector2, Vector3, Vector4, Zero};
+use cgmath::{InnerSpace, Matrix4, SquareMatrix, Vector2, Vector3, Vector4, Zero};
 
 // #[derive(Copy, Clone)]
 // pub struct Vector3<S> {
@@ -36,8 +36,9 @@ pub fn orient2d(a: Vector2<i32>, b: Vector2<i32>, x: i32, y: i32) -> i32 {
     (b.x - a.x) * (y - a.y) - (b.y - a.y) * (x - a.x)
 }
 
+#[inline]
 pub fn perspective(fov: f32, aspect: f32, near: f32, far: f32) -> Matrix4<f32> {
-    let mut m = Matrix4::zero();
+    let mut m = Matrix4::identity();
 
     let tan_half_fov_inverse = 1.0 / (fov * 0.5).tan();
 
@@ -48,4 +49,30 @@ pub fn perspective(fov: f32, aspect: f32, near: f32, far: f32) -> Matrix4<f32> {
     m[2][3] = -1.0;
 
     m
+}
+
+#[inline]
+pub fn look_at(eye: Vector3<f32>, center: Vector3<f32>, up: Vector3<f32>) -> Matrix4<f32> {
+    let forward = (center - eye).normalize();
+    let side = forward.cross(up).normalize();
+    // let up = side.cross(forward);
+
+    let mut view = Matrix4::identity();
+
+    view[0][0] = side.x;
+    view[1][0] = side.y;
+    view[2][0] = side.z;
+    view[3][0] = -side.dot(eye);
+
+    view[0][1] = up.x;
+    view[1][1] = up.y;
+    view[2][1] = up.z;
+    view[3][1] = -up.dot(eye);
+
+    view[0][2] = -forward.x;
+    view[1][2] = -forward.y;
+    view[2][2] = -forward.z;
+    view[3][2] = forward.dot(eye);
+
+    view
 }

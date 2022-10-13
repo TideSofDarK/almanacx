@@ -1,8 +1,8 @@
 pub mod application;
 pub mod console;
+pub mod draw_target;
 pub mod math;
 pub mod renderer;
+pub mod utils;
+pub mod virtual_window;
 pub mod wad;
-
-pub const WIDTH: u32 = 640;
-pub const HEIGHT: u32 = 360;

@@ -1,60 +1,65 @@
 use std::time::Instant;
 
-use log::error;
 use pixels::{Error, Pixels, SurfaceTexture};
 use winit::{
     dpi::PhysicalSize,
     event::{Event, VirtualKeyCode},
     event_loop::{ControlFlow, EventLoop},
-    window::WindowBuilder,
+    window::{Fullscreen, WindowBuilder},
 };
 use winit_input_helper::WinitInputHelper;
 
+use crate::draw_target::DrawTarget;
+
 pub trait Application {
-    fn get_window_name(&self) -> &'static str;
+    fn get_name(&self) -> &'static str;
     fn handle_input(&mut self, input: &WinitInputHelper);
     fn update(&mut self, dt: f32);
-    fn draw(&mut self, frame: &mut [u8]);
+    fn draw(&mut self, target: &mut DrawTarget);
+    fn resize_window(&mut self, width: u32, height: u32);
+    fn get_reference_dimensions(&self) -> Option<(u32, u32)>;
 }
 
-pub fn init_application(
-    width: u32,
-    height: u32,
-    mut app: impl Application + 'static,
-) -> Result<(), Error> {
+pub fn init_application<A>(mut app: A)
+where
+    A: 'static + Application,
+{
     let event_loop = EventLoop::new();
     let mut input = WinitInputHelper::new();
-    let window = {
-        let size = PhysicalSize::new(width * 2, height * 2);
-        WindowBuilder::new()
-            .with_title(app.get_window_name())
-            .with_inner_size(size)
-            .with_min_inner_size(size)
-            .with_resizable(false)
-            .build(&event_loop)
-            .unwrap()
-    };
+    let window = WindowBuilder::new()
+        .with_title(app.get_name())
+        .with_fullscreen(Some(Fullscreen::Borderless(None)))
+        .with_resizable(false)
+        .build(&event_loop)
+        .unwrap();
 
-    let mut pixels = {
-        let window_size = window.inner_size();
-        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
-        Pixels::new(width, height, surface_texture)?
+    let (physical_width, physical_height) = (window.inner_size().width, window.inner_size().height);
+    let (reference_width, reference_height) = match app.get_reference_dimensions() {
+        Some(a) => a,
+        None => (physical_width, physical_height),
     };
+    let mut pixels = Pixels::new(
+        reference_width,
+        reference_height,
+        SurfaceTexture::new(physical_width, physical_height, &window),
+    )
+    .expect("failed to init pixels");
+
+    let frame = pixels.get_frame();
+    frame.fill(128);
 
     let mut dt = 0.0;
     let mut last_frame = Instant::now();
 
     event_loop.run(move |event, _, control_flow| {
         if let Event::RedrawRequested(_) = event {
-            let frame = pixels.get_frame();
-            frame.fill(0x00);
-            app.draw(frame);
+            app.draw(&mut DrawTarget::new(
+                pixels.get_frame(),
+                reference_width,
+                reference_height,
+            ));
 
-            if pixels
-                .render()
-                .map_err(|e| error!("pixels.render() failed: {}", e))
-                .is_err()
-            {
+            if pixels.render().is_err() {
                 *control_flow = ControlFlow::Exit;
                 return;
             }
@@ -68,6 +73,7 @@ pub fn init_application(
 
             if let Some(size) = input.window_resized() {
                 pixels.resize_surface(size.width, size.height);
+                // pixels.resize_buffer(size.width, size.height);
             }
 
             dt = last_frame.elapsed().as_secs_f32();
