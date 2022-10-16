@@ -4,8 +4,6 @@ use cgmath::{InnerSpace, Vector4, VectorSpace};
 
 use super::Vertex;
 
-pub const CLIPPING_PLANE: f32 = 0.00001;
-
 pub const FRUSTUM_CLIP_MASK: [u8; 6] = [1 << 0, 1 << 1, 1 << 2, 1 << 3, 1 << 4, 1 << 5];
 
 pub const FRUSTUM_CLIP_PLANE: [Vector4<f32>; 6] = [
@@ -40,45 +38,72 @@ pub fn count_frustum_clip_mask(clip_pos: &Vector4<f32>) -> u8 {
     return mask;
 }
 
-pub fn clip_line_to_frustum(p0: &mut Vector4<f32>, p1: &mut Vector4<f32>) -> bool {
-    let mask0 = count_frustum_clip_mask(p0);
-    let mask1 = count_frustum_clip_mask(p1);
+pub fn clip_line_to_frustum(
+    mut p0: Vector4<f32>,
+    mut p1: Vector4<f32>,
+) -> Option<(Vector4<f32>, Vector4<f32>)> {
+    let mask0 = count_frustum_clip_mask(&p0);
+    let mask1 = count_frustum_clip_mask(&p1);
+
+    if (mask0 & mask1) != 0 {
+        return None;
+    }
 
     let mut t0: f32 = 0.0;
     let mut t1: f32 = 1.0;
 
     let mask = mask0 | mask1;
-    if mask != 0 {
-        for plane_index in 0..6 {
-            if (mask & FRUSTUM_CLIP_MASK[plane_index]) != 0 {
-                let d0 = FRUSTUM_CLIP_PLANE[plane_index].dot(*p0);
-                let d1 = FRUSTUM_CLIP_PLANE[plane_index].dot(*p1);
+    if mask == 0 {
+        return Some((p0, p1));
+    } else {
+        // Dot product calculation optimization
+        // Could be:    let bc0 = FRUSTUM_CLIP_PLANE[plane_index].dot(*p0);
+        //              let bc1 = FRUSTUM_CLIP_PLANE[plane_index].dot(*p1);
+        // inside for loop
+        let bc0 = [
+            p0.w - p0.x,
+            p0.w + p0.x,
+            p0.w - p0.y,
+            p0.w + p0.y,
+            p0.w - p0.z,
+            p0.w + p0.z,
+        ];
+        let bc1 = [
+            p1.w - p1.x,
+            p1.w + p1.x,
+            p1.w - p1.y,
+            p1.w + p1.y,
+            p1.w - p1.z,
+            p1.w + p1.z,
+        ];
 
-                if d0 < 0.0 && d1 < 0.0 {
-                    return true;
-                } else if d0 < 0.0 {
-                    let t = -d0 / (d1 - d0);
-                    t0 = t0.max(t);
-                } else {
-                    let t = d0 / (d0 - d1);
-                    t1 = t1.min(t);
-                }
+        for plane_index in 0..6 {
+            if bc1[plane_index] < 0.0 {
+                let t = bc0[plane_index] / (bc0[plane_index] - bc1[plane_index]);
+                t1 = t1.min(t);
+            } else if bc0[plane_index] < 0.0 {
+                let t = bc0[plane_index] / (bc0[plane_index] - bc1[plane_index]);
+                t0 = t0.max(t);
+            }
+            if t0 > t1 {
+                return None;
             }
         }
     }
 
-    let p0_original = *p0;
-    let p1_original = *p1;
+    let mut temp = p0;
 
     if mask0 != 0 {
-        *p0 = p0_original.lerp(p1_original, t0);
+        temp = p0.lerp(p1, t0);
     }
 
     if mask1 != 0 {
-        *p1 = p0_original.lerp(p1_original, t1);
+        p1 = p0.lerp(p1, t1);
     }
 
-    return false;
+    p0 = temp;
+
+    return Some((p0, p1));
 }
 
 pub fn clip_triangle_to_frustum(vs: &mut Vec<Vertex>) -> Option<Vec<usize>> {

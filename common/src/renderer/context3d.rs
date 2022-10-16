@@ -26,19 +26,9 @@ impl<'d, 'r> RenderContext3D<'d, 'r> {
         draw_target: &'d mut DrawTarget<'d>,
         z_buffer: &'r mut [f32],
     ) -> Self {
-        // let viewport = Vector4::new(
-        //     draw_target.get_width_f() / 2.0,
-        //     draw_target.get_height_f() / 2.0,
-        //     draw_target.get_width_f() / 2.0,
-        //     draw_target.get_height_f() / 2.0,
-        // );
-
-        let viewport = Vector4::new(
-            draw_target.get_width_f() / 4.0,
-            draw_target.get_height_f() / 4.0,
-            draw_target.get_width_f() / 4.0 + draw_target.get_width_f() / 4.0,
-            draw_target.get_height_f() / 4.0 + draw_target.get_height_f() / 4.0,
-        );
+        let half_width = draw_target.get_width_f() / 2.0;
+        let half_height = draw_target.get_height_f() / 2.0;
+        let viewport = Vector4::new(half_width, half_height, half_width, half_height);
 
         Self {
             view_proj_mat: view_proj_mat,
@@ -48,6 +38,17 @@ impl<'d, 'r> RenderContext3D<'d, 'r> {
             viewport: viewport,
             texture: None,
         }
+    }
+
+    pub fn with_viewport(mut self, viewport: Vector4<f32>) -> Self {
+        self.viewport = Vector4::new(
+            viewport.z / 2.0,
+            viewport.w / 2.0,
+            viewport.x + viewport.z / 2.0,
+            viewport.y + viewport.w / 2.0,
+        );
+
+        self
     }
 
     #[inline]
@@ -104,33 +105,16 @@ impl<'d, 'r> RenderContext3D<'d, 'r> {
         p0 = self.view_proj_mat * p0;
         p1 = self.view_proj_mat * p1;
 
-        if clip_line_to_frustum(&mut p0, &mut p1) {
-            return;
+        if let Some((mut p0, mut p1)) = clip_line_to_frustum(p0, p1) {
+            self.perspective_division(&mut p0);
+            self.perspective_division(&mut p1);
+
+            self.transform_viewport(&mut p0);
+            self.transform_viewport(&mut p1);
+
+            self.draw_target
+                .draw_line_2d(p0.truncate(), p1.truncate(), &c);
         }
-
-        self.perspective_division(&mut p0);
-        self.perspective_division(&mut p1);
-
-        // println!("{:?}", p0);
-        // println!("{:?}", p1);
-
-        if p0.x < -1.01
-            || p0.x > 1.01
-            || p0.y < -1.01
-            || p0.y > 1.01
-            || p1.x < -1.01
-            || p1.x > 1.01
-            || p1.y < -1.01
-            || p1.y > 1.01
-        {
-            return;
-        }
-
-        self.transform_viewport(&mut p0);
-        self.transform_viewport(&mut p1);
-
-        self.draw_target
-            .draw_line_2d(p0.truncate(), p1.truncate(), &c);
     }
 
     fn rasterize_triangle(&mut self, v0: Vertex, v1: Vertex, v2: Vertex) {

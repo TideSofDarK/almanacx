@@ -54,10 +54,10 @@ impl<'c, 'z> DrawTarget<'c> {
     }
 
     pub fn draw_line_2d(&mut self, p0: Vector3<f32>, p1: Vector3<f32>, c: &Vector3<u8>) {
-        let mut x0 = (p0.x as i32);
-        let mut x1 = (p1.x as i32);
-        let mut y0 = (p0.y as i32);
-        let mut y1 = (p1.y as i32);
+        let mut x0 = p0.x as i32;
+        let mut x1 = p1.x as i32;
+        let mut y0 = p0.y as i32;
+        let mut y1 = p1.y as i32;
         let mut z0 = p0.z;
         let mut z1 = p1.z;
 
