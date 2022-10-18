@@ -1,10 +1,11 @@
 use cgmath::{Vector2, Vector3, Vector4, Zero};
 use common::{
     application::Application,
-    draw_target::DrawTarget,
+    buffer2d::{Buffer2D, Buffer2DSlice},
+    image::bmp,
     renderer::{camera::Camera, utils::draw_grid, Renderer, Vertex},
     virtual_window::VirtualWindow,
-    wad::{self, TextureData},
+    wad::{self},
 };
 use winit::event::VirtualKeyCode;
 use winit_input_helper::WinitInputHelper;
@@ -30,11 +31,16 @@ pub struct Game {
     player: Player,
     world: World,
     triangles: Vec<(Vertex, Vertex, Vertex)>,
-    texture: Option<TextureData>,
+    texture: Buffer2D,
+    conchars: Option<Buffer2D>,
+    x: i32,
+    y: i32,
 }
 
 impl Game {
     pub fn new() -> Self {
+        let conchars = bmp::load_bmp("./assets/conchars.bmp").expect("no such bmp file");
+
         let wad = wad::load("./assets/DOOM1.WAD").expect("no such wad file");
         let map_data = wad.get_map_data("E1M1").expect("no such map");
 
@@ -134,8 +140,8 @@ impl Game {
             }
         }
 
-        let primary_window_x = (REFERENCE_WIDTH - PRIMARY_WIDTH) / 2;
-        let primary_window_y = (REFERENCE_HEIGHT - PRIMARY_HEIGHT) / 2;
+        let primary_window_x = ((REFERENCE_WIDTH - PRIMARY_WIDTH) / 2) as i32;
+        let primary_window_y = ((REFERENCE_HEIGHT - PRIMARY_HEIGHT) / 2) as i32;
 
         Self {
             primary_window: VirtualWindow::new(
@@ -150,7 +156,10 @@ impl Game {
             player: Player::new(),
             world: World::new(map_data),
             triangles: triangles,
-            texture: Some(wad.get_texture_data("WALL03_7")),
+            texture: wad.load_texture_into_buffer("WALL03_7"),
+            conchars: Some(conchars),
+            x: 0,
+            y: 0,
         }
     }
 }
@@ -170,6 +179,19 @@ impl Application for Game {
             input.key_held(VirtualKeyCode::Right),
             input.key_held(VirtualKeyCode::LShift),
         );
+
+        if input.key_held(VirtualKeyCode::Up) {
+            self.y -= 3;
+        }
+        if input.key_held(VirtualKeyCode::Down) {
+            self.y += 3;
+        }
+        if input.key_held(VirtualKeyCode::Right) {
+            self.x += 3;
+        }
+        if input.key_held(VirtualKeyCode::Left) {
+            self.x -= 3;
+        }
 
         // if input.key_pressed(VirtualKeyCode::F11) {
         //     println!("{:?}", self.renderer.get_tris_count());
@@ -195,10 +217,10 @@ impl Application for Game {
         self.player.update(dt);
     }
 
-    fn draw(&mut self, target: &mut DrawTarget<'_>) {
+    fn draw(&mut self, buffer_slice: &mut Buffer2DSlice<'_>) {
         self.renderer.begin();
 
-        let mut primary_window_target = self.primary_window.get_draw_target();
+        let mut primary_window_target = self.primary_window.get_buffer_slice();
         primary_window_target.clear();
         let mut ctx = self.renderer.create_context_3d(
             self.camera.get_projection() * self.player.get_view(),
@@ -209,9 +231,11 @@ impl Application for Game {
 
         match self.game_state {
             GameState::Action => {
+                ctx.push_texture(&self.texture);
                 for (v0, v1, v2) in &self.triangles {
                     ctx.draw_triangle(v0, v1, v2);
                 }
+                ctx.pop_texture();
             }
             GameState::Automap => {
                 let vertices = self.world.get_vertices();
@@ -229,7 +253,11 @@ impl Application for Game {
             }
         }
 
-        self.primary_window.draw(target);
+        buffer_slice.blit_virtual_window(&self.primary_window);
+
+        if let Some(conchars) = &self.conchars {
+            buffer_slice.blit_buffer(conchars, self.x, self.y);
+        }
     }
 
     fn resize_window(&mut self, width: u32, height: u32) {}

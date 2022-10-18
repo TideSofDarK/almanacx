@@ -1,9 +1,10 @@
-use std::convert::TryInto;
 use std::fs::File;
 use std::io;
 use std::io::Read;
 
 use cgmath::{Vector2, Vector3};
+
+use crate::{buffer2d::Buffer2D, utils::*};
 
 const DIR_SIZE: usize = 16;
 const VERTICES_SIZE: usize = 4;
@@ -28,13 +29,6 @@ pub struct WorldData {
     pub linedefs: Vec<Vector2<usize>>,
 }
 
-#[derive(Default)]
-pub struct TextureData {
-    pub width: usize,
-    pub height: usize,
-    pub colors: Vec<Vector3<u8>>,
-}
-
 enum PatchColumnState {
     YOffset,
     Length,
@@ -43,9 +37,7 @@ enum PatchColumnState {
 }
 
 impl WAD {
-    pub fn get_texture_data(&self, name: &str) -> TextureData {
-        let mut texture_data = TextureData::default();
-
+    pub fn load_texture_into_buffer(&self, name: &str) -> Buffer2D {
         let texture_dir = self
             .dirs
             .iter()
@@ -64,7 +56,9 @@ impl WAD {
 
         let header_width = read_u16(&self.buf, texture_dir.offset) as usize;
         let header_height = read_u16(&self.buf, texture_dir.offset + 2) as usize;
-        texture_data.colors = vec![Vector3::new(255, 255, 255); header_width * header_height];
+
+        let mut final_colors = vec![255u8; header_width * header_height * 4];
+
         let header_lo = read_i16(&self.buf, texture_dir.offset + 4);
         let header_to = read_i16(&self.buf, texture_dir.offset + 6);
         let pointer_offset = texture_dir.offset + 8;
@@ -109,7 +103,12 @@ impl WAD {
                             state = PatchColumnState::YOffset;
                         } else {
                             let y = (y_offset + c) as usize;
-                            texture_data.colors[(y * header_width + x)] = colors[b as usize];
+                            let index =
+                                calculate_index(x as i32, y as i32, header_width as i32) * 4;
+                            let color = colors[b as usize];
+                            final_colors[index..index + 3]
+                                .copy_from_slice(&[color.x, color.y, color.z]);
+                            final_colors[index + 3] = 255;
 
                             c += 1;
                         }
@@ -119,15 +118,12 @@ impl WAD {
             }
         }
 
-        texture_data.width = header_width;
-        texture_data.height = header_height;
-
         println!(
             "Loading texture \"{}\" with size {}:{} with offsets {}:{}",
             texture_dir.name, header_width, header_height, header_lo, header_to
         );
 
-        texture_data
+        Buffer2D::new(header_width, header_height, final_colors)
     }
 
     pub fn get_map_data(&self, map_name: &str) -> Result<WorldData, ()> {
@@ -135,7 +131,7 @@ impl WAD {
 
         let mut found = false;
         for dir in &self.dirs {
-            if (dir.size == 0) {
+            if dir.size == 0 {
                 if found {
                     break;
                 } else {
@@ -184,12 +180,10 @@ pub fn load(path: &str) -> io::Result<WAD> {
     let dir = &buf[dir_offset..buf.len()];
     let dirs = dir
         .chunks(DIR_SIZE)
-        .map(|x| {
-            (Dir {
-                offset: read_u32(x, 0) as usize,
-                size: read_u32(x, 4) as usize,
-                name: read_str_8bytes(x, 8),
-            })
+        .map(|x| Dir {
+            offset: read_u32(x, 0) as usize,
+            size: read_u32(x, 4) as usize,
+            name: read_str_8bytes(x, 8),
         })
         .collect();
 
@@ -199,56 +193,4 @@ pub fn load(path: &str) -> io::Result<WAD> {
         dirs,
         buf,
     })
-}
-
-fn read_u8(buf: &[u8], offset: usize) -> u8 {
-    u8::from_le_bytes(
-        buf[offset..offset + 1]
-            .try_into()
-            .expect("slice with incorrect length"),
-    )
-}
-
-fn read_i16(buf: &[u8], offset: usize) -> i16 {
-    i16::from_le_bytes(
-        buf[offset..offset + 2]
-            .try_into()
-            .expect("slice with incorrect length"),
-    )
-}
-
-fn read_u16(buf: &[u8], offset: usize) -> u16 {
-    u16::from_le_bytes(
-        buf[offset..offset + 2]
-            .try_into()
-            .expect("slice with incorrect length"),
-    )
-}
-
-fn read_u32(buf: &[u8], offset: usize) -> u32 {
-    u32::from_le_bytes(
-        buf[offset..offset + 4]
-            .try_into()
-            .expect("slice with incorrect length"),
-    )
-}
-
-fn read_str_4bytes(buf: &[u8], offset: usize) -> String {
-    String::from_utf8(
-        buf[offset..offset + 4]
-            .try_into()
-            .expect("slice with incorrect length"),
-    )
-    .expect("")
-    .replace('\0', "")
-}
-
-fn read_str_8bytes(buf: &[u8], offset: usize) -> String {
-    String::from_utf8(
-        buf[offset..offset + 8]
-            .try_into()
-            .expect("slice with incorrect length"),
-    )
-    .expect("")
-    .replace('\0', "")
 }

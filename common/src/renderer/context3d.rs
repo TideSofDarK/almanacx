@@ -1,9 +1,9 @@
 use cgmath::{InnerSpace, Matrix3, Matrix4, Vector2, Vector3, Vector4};
 
 use crate::{
-    draw_target::DrawTarget,
+    buffer2d::{Buffer2D, Buffer2DSlice},
     math::{max3, min3, orient2d},
-    wad::TextureData,
+    utils::calculate_index,
 };
 
 use super::{
@@ -13,17 +13,17 @@ use super::{
 
 pub struct RenderContext3D<'d, 'r> {
     view_proj_mat: Matrix4<f32>,
-    draw_target: &'d mut DrawTarget<'d>,
+    draw_target: &'d mut Buffer2DSlice<'d>,
     z_buffer: &'r mut [f32],
     tris_count: u32,
     viewport: Vector4<f32>,
-    texture: Option<TextureData>,
+    texture: Option<&'d Buffer2D>,
 }
 
 impl<'d, 'r> RenderContext3D<'d, 'r> {
     pub fn new(
         view_proj_mat: Matrix4<f32>,
-        draw_target: &'d mut DrawTarget<'d>,
+        draw_target: &'d mut Buffer2DSlice<'d>,
         z_buffer: &'r mut [f32],
     ) -> Self {
         let half_width = draw_target.get_width_f() / 2.0;
@@ -74,12 +74,12 @@ impl<'d, 'r> RenderContext3D<'d, 'r> {
         // pos.z = 0.5 * (depth_range.sum - depth_range.diff * pos.z);
     }
 
-    pub fn set_texture(&mut self, texture_data: Option<TextureData>) {
-        self.texture = texture_data;
+    pub fn push_texture(&mut self, texture: &'d Buffer2D) {
+        self.texture = Some(texture);
     }
 
-    pub fn take_texture(&mut self) -> Option<TextureData> {
-        self.texture.take()
+    pub fn pop_texture(&mut self) {
+        self.texture = None;
     }
 
     pub fn draw_gizmo(&mut self, vw: Vertex) {
@@ -169,44 +169,44 @@ impl<'d, 'r> RenderContext3D<'d, 'r> {
 
             for x in min_x..max_x {
                 if (bc_screen_x | bc_screen_y | bc_screen_z) >= 0 {
-                    if let Some(index) = self.draw_target.calculate_index(x, y) {
-                        let mut bc_clip = Vector3::new(
-                            bc_screen_x as f32 / pos_viewport[0].w,
-                            bc_screen_y as f32 / pos_viewport[1].w,
-                            bc_screen_z as f32 / pos_viewport[2].w,
-                        );
-                        bc_clip = bc_clip / (bc_clip.x + bc_clip.y + bc_clip.z);
+                    let index = calculate_index(x, y, self.draw_target.get_width());
 
-                        let frag_depth =
-                            Vector3::new(vertices[0].pos.z, vertices[1].pos.z, vertices[2].pos.z)
-                                .dot(bc_clip);
+                    let mut bc_clip = Vector3::new(
+                        bc_screen_x as f32 / pos_viewport[0].w,
+                        bc_screen_y as f32 / pos_viewport[1].w,
+                        bc_screen_z as f32 / pos_viewport[2].w,
+                    );
+                    bc_clip = bc_clip / (bc_clip.x + bc_clip.y + bc_clip.z);
 
-                        if frag_depth < self.z_buffer[index] {
-                            self.z_buffer[index] = frag_depth;
+                    let frag_depth =
+                        Vector3::new(vertices[0].pos.z, vertices[1].pos.z, vertices[2].pos.z)
+                            .dot(bc_clip);
 
-                            let color = match self.texture {
-                                Some(ref texture) => {
-                                    let uv = Matrix3::from_cols(
-                                        vertices[0].uv.extend(0.0),
-                                        vertices[1].uv.extend(0.0),
-                                        vertices[2].uv.extend(0.0),
-                                    ) * bc_clip;
-                                    let texture_x =
-                                        (uv.x * (texture.width as f32 - 1.0)).round() as usize;
-                                    let texture_y =
-                                        (uv.y * (texture.height as f32 - 1.0)).round() as usize;
-                                    texture.colors[texture_y * texture.width + texture_x]
-                                }
-                                None => (Matrix3::from_cols(
-                                    vertices[0].color,
-                                    vertices[1].color,
-                                    vertices[2].color,
-                                ) * bc_clip)
-                                    .map(|c| ((c * 255.0) as u8)),
-                            };
+                    if frag_depth < self.z_buffer[index] {
+                        self.z_buffer[index] = frag_depth;
 
-                            self.draw_target.set_color_by_index(index * 4, &color);
-                        }
+                        let color = match self.texture {
+                            Some(ref texture) => {
+                                let uv = Matrix3::from_cols(
+                                    vertices[0].uv.extend(0.0),
+                                    vertices[1].uv.extend(0.0),
+                                    vertices[2].uv.extend(0.0),
+                                ) * bc_clip;
+                                let texture_x =
+                                    (uv.x * (texture.get_width() as f32 - 1.0)).round() as usize;
+                                let texture_y =
+                                    (uv.y * (texture.get_height() as f32 - 1.0)).round() as usize;
+                                texture.get_color(texture_x, texture_y)
+                            }
+                            None => (Matrix3::from_cols(
+                                vertices[0].color,
+                                vertices[1].color,
+                                vertices[2].color,
+                            ) * bc_clip)
+                                .map(|c| ((c * 255.0) as u8)),
+                        };
+
+                        self.draw_target.set_color_by_index(index * 4, &color);
                     }
                 }
 

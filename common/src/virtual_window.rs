@@ -1,48 +1,40 @@
 use cgmath::Vector3;
 
-use crate::draw_target::DrawTarget;
+use crate::buffer2d::{Buffer2D, Buffer2DSlice};
 
 pub struct VirtualWindow {
-    x: usize,
-    y: usize,
-    width: usize,
-    height: usize,
-    color_buffer: Vec<u8>,
+    x: i32,
+    y: i32,
+    image: Buffer2D,
 }
 
 impl VirtualWindow {
-    pub fn new(x: usize, y: usize, width: usize, height: usize) -> Self {
+    pub fn new(x: i32, y: i32, width: usize, height: usize) -> Self {
         Self {
             x: x,
             y: y,
-            width: width,
-            height: height,
-            color_buffer: vec![0; width * height * 4],
+            image: Buffer2D::new(width, height, vec![0; width * height * 4]),
         }
     }
 
-    pub fn get_draw_target(&mut self) -> DrawTarget {
-        DrawTarget::new(
-            self.color_buffer.as_mut_slice(),
-            self.width as u32,
-            self.height as u32,
-        )
+    #[inline]
+    pub fn get_x(&self) -> i32 {
+        self.x
     }
 
-    pub fn draw(&self, draw_target: &mut DrawTarget) {
-        for x in 0..self.width {
-            for y in 0..self.height {
-                let index = ((y * self.width) + x) * 4;
-                draw_target.set_color_xy(
-                    (x + self.x) as i32,
-                    (y + self.y) as i32,
-                    &Vector3::new(
-                        self.color_buffer[index],
-                        self.color_buffer[index + 1],
-                        self.color_buffer[index + 2],
-                    ),
-                )
-            }
-        }
+    #[inline]
+    pub fn get_y(&self) -> i32 {
+        self.y
+    }
+
+    #[inline]
+    pub fn get_image(&self) -> &Buffer2D {
+        &self.image
+    }
+
+    pub fn get_buffer_slice(&mut self) -> Buffer2DSlice {
+        let width = self.image.get_width() as u32;
+        let height = self.image.get_height() as u32;
+        Buffer2DSlice::new(width, height, self.image.get_buffer_mut())
     }
 }

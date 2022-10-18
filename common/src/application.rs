@@ -1,21 +1,20 @@
 use std::time::Instant;
 
-use pixels::{Error, Pixels, SurfaceTexture};
+use pixels::{Pixels, SurfaceTexture};
 use winit::{
-    dpi::PhysicalSize,
     event::{Event, VirtualKeyCode},
     event_loop::{ControlFlow, EventLoop},
     window::{Fullscreen, WindowBuilder},
 };
 use winit_input_helper::WinitInputHelper;
 
-use crate::draw_target::DrawTarget;
+use crate::buffer2d::Buffer2DSlice;
 
 pub trait Application {
     fn get_name(&self) -> &'static str;
     fn handle_input(&mut self, input: &WinitInputHelper);
     fn update(&mut self, dt: f32);
-    fn draw(&mut self, target: &mut DrawTarget);
+    fn draw(&mut self, buffer_slice: &mut Buffer2DSlice);
     fn resize_window(&mut self, width: u32, height: u32);
     fn get_reference_dimensions(&self) -> Option<(u32, u32)>;
 }
@@ -46,17 +45,17 @@ where
     .expect("failed to init pixels");
 
     let frame = pixels.get_frame();
-    frame.fill(128);
 
     let mut dt = 0.0;
     let mut last_frame = Instant::now();
 
     event_loop.run(move |event, _, control_flow| {
         if let Event::RedrawRequested(_) = event {
-            app.draw(&mut DrawTarget::new(
-                pixels.get_frame(),
+            pixels.get_frame().fill(128);
+            app.draw(&mut Buffer2DSlice::new(
                 reference_width,
                 reference_height,
+                pixels.get_frame(),
             ));
 
             if pixels.render().is_err() {

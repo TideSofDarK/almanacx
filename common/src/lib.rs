@@ -1,6 +1,7 @@
 pub mod application;
+pub mod buffer2d;
 pub mod console;
-pub mod draw_target;
+pub mod image;
 pub mod math;
 pub mod renderer;
 pub mod utils;
