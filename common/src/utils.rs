@@ -50,7 +50,6 @@ pub fn read_str_8bytes(buf: &[u8], offset: usize) -> String {
     .replace('\0', "")
 }
 
-#[inline]
 pub fn calculate_index(x: i32, y: i32, width: i32) -> usize {
     (y * width + x) as usize
 }

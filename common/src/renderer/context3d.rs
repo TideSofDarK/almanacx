@@ -51,12 +51,10 @@ impl<'d, 'r> RenderContext3D<'d, 'r> {
         self
     }
 
-    #[inline]
     pub fn get_tris_count(&self) -> u32 {
         self.tris_count
     }
 
-    #[inline]
     fn perspective_division(&self, mut pos: &mut Vector4<f32>) {
         let inv_w = 1.0 / pos.w;
         pos.x *= inv_w;
@@ -64,7 +62,6 @@ impl<'d, 'r> RenderContext3D<'d, 'r> {
         pos.z *= inv_w;
     }
 
-    #[inline]
     fn transform_viewport(&self, pos: &mut Vector4<f32>) {
         pos.x = pos.x * self.viewport.x as f32 + self.viewport.z;
         pos.y = pos.y * self.viewport.y as f32 + self.viewport.w;

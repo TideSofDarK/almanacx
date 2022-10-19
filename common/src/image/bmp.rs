@@ -125,7 +125,6 @@ pub fn load_bmp(path: &str) -> io::Result<Buffer2D> {
     ))
 }
 
-#[inline]
 fn shift32(value: u32, shift: u32) -> u32 {
     value << shift
 }

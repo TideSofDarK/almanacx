@@ -22,17 +22,14 @@ impl Buffer2D {
         }
     }
 
-    #[inline]
     pub fn get_buffer_mut(&mut self) -> &mut [u8] {
         self.colors.as_mut_slice()
     }
 
-    #[inline]
     pub fn get_buffer(&self) -> &[u8] {
         self.colors.as_slice()
     }
 
-    #[inline]
     pub fn get_color(&self, x: usize, y: usize) -> Vector3<u8> {
         let index = ((y * self.width as usize) + x) * 4;
         let channels = &self.colors[index..index + 4];
@@ -43,12 +40,10 @@ impl Buffer2D {
         }
     }
 
-    #[inline]
     pub fn get_width(&self) -> usize {
         self.width
     }
 
-    #[inline]
     pub fn get_height(&self) -> usize {
         self.height
     }
@@ -69,27 +64,22 @@ impl<'c> Buffer2DSlice<'c> {
         }
     }
 
-    #[inline]
     pub fn clear(&mut self) {
         self.colors.fill(0x00)
     }
 
-    #[inline]
     pub fn get_width(&self) -> i32 {
         self.width
     }
 
-    #[inline]
     pub fn get_height(&self) -> i32 {
         self.height
     }
 
-    #[inline]
     pub fn get_width_f(&self) -> f32 {
         self.width as f32
     }
 
-    #[inline]
     pub fn get_height_f(&self) -> f32 {
         self.height as f32
     }

@@ -17,17 +17,14 @@ impl VirtualWindow {
         }
     }
 
-    #[inline]
     pub fn get_x(&self) -> i32 {
         self.x
     }
 
-    #[inline]
     pub fn get_y(&self) -> i32 {
         self.y
     }
 
-    #[inline]
     pub fn get_image(&self) -> &Buffer2D {
         &self.image
     }

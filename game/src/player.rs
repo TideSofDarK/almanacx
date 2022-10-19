@@ -1,5 +1,4 @@
 use cgmath::{Matrix4, Point3, Rad, Vector3};
-use common::renderer::camera::Camera;
 
 pub struct Player {
     walk_speed: f32,
