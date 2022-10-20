@@ -1,5 +1,5 @@
 [package]
-name = "game"
+name = "almanacx"
 version = "0.0.1"
 edition.workspace = true
 
@@ -7,7 +7,4 @@ edition.workspace = true
 
 [dependencies]
 common = { path = "../common" }
-pixels.workspace = true
-winit.workspace = true
-winit_input_helper.workspace = true
 cgmath.workspace = true

@@ -107,7 +107,7 @@ impl WAD {
                                 calculate_index(x as i32, y as i32, header_width as i32) * 4;
                             let color = colors[b as usize];
                             final_colors[index..index + 3]
-                                .copy_from_slice(&[color.x, color.y, color.z]);
+                                .copy_from_slice(&[color.z, color.y, color.x]);
                             final_colors[index + 3] = 255;
 
                             c += 1;

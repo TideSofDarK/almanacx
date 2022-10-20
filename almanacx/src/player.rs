@@ -15,8 +15,8 @@ pub struct Player {
 impl Player {
     pub fn new() -> Self {
         Self {
-            walk_speed: 1.75,
-            turn_speed: 1.5,
+            walk_speed: 1.45,
+            turn_speed: 1.15,
 
             sign_z: 0,
             sign_x: 0,
@@ -26,7 +26,7 @@ impl Player {
             view: Matrix4::look_to_lh(
                 Point3::new(0.0, 0.5, 0.0),
                 Vector3::unit_z(),
-                -Vector3::unit_y(),
+                Vector3::unit_y(),
             ),
         }
     }

@@ -3,47 +3,34 @@ mod view;
 
 use std::time::Instant;
 
-use common::{application::Application, buffer2d::Buffer2DSlice, console::Console};
-use winit_input_helper::WinitInputHelper;
+use common::{
+    console::Console,
+    platform::{input::Input, Application},
+};
 
 struct Quill {
     console: Console,
 }
 
 impl Application for Quill {
-    fn get_name(&self) -> &'static str {
+    fn get_title(&self) -> &'static str {
         "Quill"
     }
 
-    fn handle_input(&mut self, input: &WinitInputHelper) {
-        // if input.key_pressed(VirtualKeyCode::Grave) {
-        //     self.console.toggle();
-        // }
-    }
-
-    fn update(&mut self, dt: f32) {
-        self.console.update(dt);
-    }
-
-    fn draw(&mut self, target: &mut Buffer2DSlice<'_>) {
-        // self.console.draw(frame);
-    }
-
-    fn resize_window(&mut self, width: u32, height: u32) {}
-
-    fn get_reference_dimensions(&self) -> Option<(u32, u32)> {
+    fn main_loop(
+        &mut self,
+        input: &Input,
+        dt: f32,
+        buffer: Option<&mut common::buffer2d::Buffer2DSlice>,
+    ) -> bool {
         todo!()
     }
 }
 
 fn main() {
-    // init_application(
-    //     640,
-    //     360,
-    //     Quill {
-    //         console: Console::new(640, 360),
-    //     },
-    // );
+    // init_application(Quill {
+    //     console: Console::new(640, 360),
+    // });
 
     let width = 1920usize;
     let height = 1080usize;

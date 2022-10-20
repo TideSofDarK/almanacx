@@ -1,5 +1,5 @@
 [package]
-name = "editor"
+name = "quill"
 version = "0.0.1"
 edition.workspace = true
 
@@ -7,6 +7,3 @@ edition.workspace = true
 
 [dependencies]
 common = { path = "../common" }
-pixels.workspace = true
-winit.workspace = true
-winit_input_helper.workspace = true

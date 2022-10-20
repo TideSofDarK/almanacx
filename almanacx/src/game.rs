@@ -1,40 +1,42 @@
 use cgmath::{Vector2, Vector3, Vector4, Zero};
 use common::{
-    application::Application,
     buffer2d::{Buffer2D, Buffer2DSlice},
     image::bmp,
+    platform::{
+        input::{Input, INPUT_LMB},
+        Application,
+    },
     renderer::{camera::Camera, utils::draw_grid, Renderer, Vertex},
     virtual_window::VirtualWindow,
+    vk,
     wad::{self},
 };
-use winit::event::VirtualKeyCode;
-use winit_input_helper::WinitInputHelper;
 
 use crate::{player::Player, world::World};
 
-const PRIMARY_WIDTH: usize = 640;
-const PRIMARY_HEIGHT: usize = 480;
+const PRIMARY_WIDTH: i32 = 600;
+const PRIMARY_HEIGHT: i32 = 420;
 
-const REFERENCE_WIDTH: usize = 960;
-const REFERENCE_HEIGHT: usize = 540;
+const REFERENCE_WIDTH: i32 = 960;
+const REFERENCE_HEIGHT: i32 = 540;
 
-enum GameState {
+pub enum GameState {
     Action,
     Automap,
 }
 
 pub struct Game {
-    primary_window: VirtualWindow,
-    game_state: GameState,
-    renderer: Renderer,
-    camera: Camera,
-    player: Player,
-    world: World,
-    triangles: Vec<(Vertex, Vertex, Vertex)>,
-    texture: Buffer2D,
-    conchars: Option<Buffer2D>,
-    x: i32,
-    y: i32,
+    pub primary_window: VirtualWindow,
+    pub game_state: GameState,
+    pub renderer: Renderer,
+    pub camera: Camera,
+    pub player: Player,
+    pub world: World,
+    pub triangles: Vec<(Vertex, Vertex, Vertex)>,
+    pub texture: Buffer2D,
+    pub conchars: Option<Buffer2D>,
+    pub x: i32,
+    pub y: i32,
 }
 
 impl Game {
@@ -44,7 +46,7 @@ impl Game {
         let wad = wad::load("./assets/DOOM1.WAD").expect("no such wad file");
         let map_data = wad.get_map_data("E1M1").expect("no such map");
 
-        let renderer = Renderer::new(PRIMARY_WIDTH, PRIMARY_HEIGHT);
+        let renderer = Renderer::new(PRIMARY_WIDTH as usize, PRIMARY_HEIGHT as usize);
         let mut camera = Camera::new();
         camera.set_perspective(
             f32::to_radians(60.0),
@@ -58,7 +60,7 @@ impl Game {
             for z in 0..5 {
                 let offset_x = 0.5 * x as f32 + 1.25;
                 let offset_z = 0.5 * z as f32 + 1.25;
-                let offset_y = 0.0;
+                let offset_y = 0.1;
                 let v0 = Vertex {
                     pos: Vector4::new(-0.25 + offset_x, offset_y, 0.25 + offset_z, 1.0),
                     color: Vector3::new(1.0, 0.0, 0.0),
@@ -147,8 +149,8 @@ impl Game {
             primary_window: VirtualWindow::new(
                 primary_window_x,
                 primary_window_y,
-                PRIMARY_WIDTH,
-                PRIMARY_HEIGHT,
+                PRIMARY_WIDTH as usize,
+                PRIMARY_HEIGHT as usize,
             ),
             game_state: GameState::Action,
             renderer: renderer,
@@ -165,104 +167,102 @@ impl Game {
 }
 
 impl Application for Game {
-    fn get_name(&self) -> &'static str {
+    fn get_title(&self) -> &'static str {
         "Almanac X"
     }
 
-    fn handle_input(&mut self, input: &WinitInputHelper) {
+    fn main_loop(&mut self, input: &Input, dt: f32, buffer: Option<&mut Buffer2DSlice>) -> bool {
+        if input.is_pressed(27) {
+            return false;
+        }
+
         self.player.handle_input(
-            input.key_held(VirtualKeyCode::W),
-            input.key_held(VirtualKeyCode::S),
-            input.key_held(VirtualKeyCode::A),
-            input.key_held(VirtualKeyCode::D),
-            input.key_held(VirtualKeyCode::Left),
-            input.key_held(VirtualKeyCode::Right),
-            input.key_held(VirtualKeyCode::LShift),
+            input.is_held(vk!('W')),
+            input.is_held(vk!('S')),
+            input.is_held(vk!('A')),
+            input.is_held(vk!('D')),
+            input.is_held(0x25),
+            input.is_held(0x27),
+            input.is_held(16),
         );
 
-        if input.key_held(VirtualKeyCode::Up) {
-            self.y -= 3;
-        }
-        if input.key_held(VirtualKeyCode::Down) {
-            self.y += 3;
-        }
-        if input.key_held(VirtualKeyCode::Right) {
-            self.x += 3;
-        }
-        if input.key_held(VirtualKeyCode::Left) {
-            self.x -= 3;
-        }
-
-        // if input.key_pressed(VirtualKeyCode::F11) {
-        //     println!("{:?}", self.renderer.get_tris_count());
+        // if input.key_held(VirtualKeyCode::Up) {
+        //     self.y -= 3;
+        // }
+        // if input.key_held(VirtualKeyCode::Down) {
+        //     self.y += 3;
+        // }
+        // if input.key_held(VirtualKeyCode::Right) {
+        //     self.x += 3;
+        // }
+        // if input.key_held(VirtualKeyCode::Left) {
+        //     self.x -= 3;
         // }
 
-        if input.key_pressed(VirtualKeyCode::Tab) {
-            self.game_state = match self.game_state {
-                GameState::Action => GameState::Automap,
-                _ => GameState::Action,
-            }
-        }
+        // // if input.key_pressed(VirtualKeyCode::F11) {
+        // //     println!("{:?}", self.renderer.get_tris_count());
+        // // }
 
-        // if input.key_pressed(VirtualKeyCode::Z) {
-        //     self.renderer.set_texture(self.texture.take());
+        // if input.key_pressed(VirtualKeyCode::Tab) {
+        //     self.game_state = match self.game_state {
+        //         GameState::Action => GameState::Automap,
+        //         _ => GameState::Action,
+        //     }
         // }
 
-        // if input.key_pressed(VirtualKeyCode::X) {
-        //     self.texture = self.renderer.take_texture();
-        // }
-    }
+        // // if input.key_pressed(VirtualKeyCode::Z) {
+        // //     self.renderer.set_texture(self.texture.take());
+        // // }
 
-    fn update(&mut self, dt: f32) {
+        // // if input.key_pressed(VirtualKeyCode::X) {
+        // //     self.texture = self.renderer.take_texture();
+        // // }
+
         self.player.update(dt);
-    }
 
-    fn draw(&mut self, buffer_slice: &mut Buffer2DSlice<'_>) {
-        self.renderer.begin();
+        if let Some(buffer) = buffer {
+            self.renderer.begin();
 
-        let mut primary_window_target = self.primary_window.get_buffer_slice();
-        primary_window_target.clear();
-        let mut ctx = self.renderer.create_context_3d(
-            self.camera.get_projection() * self.player.get_view(),
-            &mut primary_window_target,
-        );
+            let mut primary_window_target = self.primary_window.get_buffer_slice();
+            primary_window_target.clear();
+            let mut ctx = self.renderer.create_context_3d(
+                self.camera.get_projection() * self.player.get_view(),
+                &mut primary_window_target,
+            );
 
-        draw_grid(&mut ctx, Vector3::<f32>::zero(), 0.5);
+            draw_grid(&mut ctx, Vector3::<f32>::zero(), 0.5);
 
-        match self.game_state {
-            GameState::Action => {
-                ctx.push_texture(&self.texture);
-                for (v0, v1, v2) in &self.triangles {
-                    ctx.draw_triangle(v0, v1, v2);
+            match self.game_state {
+                GameState::Action => {
+                    ctx.push_texture(&self.texture);
+                    for (v0, v1, v2) in &self.triangles {
+                        ctx.draw_triangle(v0, v1, v2);
+                    }
+                    ctx.pop_texture();
                 }
-                ctx.pop_texture();
+                GameState::Automap => {
+                    let vertices = self.world.get_vertices();
+
+                    for v in self.world.get_linedefs() {
+                        ctx.draw_line(
+                            vertices[v.x].pos,
+                            vertices[v.y].pos,
+                            Vector3::new(255, 255, 255),
+                        );
+
+                        // ctx.draw_gizmo(vertices[v.x]);
+                        // ctx.draw_gizmo(vertices[v.y]);
+                    }
+                }
             }
-            GameState::Automap => {
-                let vertices = self.world.get_vertices();
 
-                for v in self.world.get_linedefs() {
-                    ctx.draw_line(
-                        vertices[v.x].pos,
-                        vertices[v.y].pos,
-                        Vector3::new(255, 255, 255),
-                    );
+            buffer.blit_virtual_window(&self.primary_window);
 
-                    // ctx.draw_gizmo(vertices[v.x]);
-                    // ctx.draw_gizmo(vertices[v.y]);
-                }
+            if let Some(conchars) = &self.conchars {
+                buffer.blit_buffer(conchars, self.x, self.y);
             }
         }
 
-        buffer_slice.blit_virtual_window(&self.primary_window);
-
-        if let Some(conchars) = &self.conchars {
-            buffer_slice.blit_buffer(conchars, self.x, self.y);
-        }
-    }
-
-    fn resize_window(&mut self, width: u32, height: u32) {}
-
-    fn get_reference_dimensions(&self) -> Option<(u32, u32)> {
-        Some((REFERENCE_WIDTH as u32, REFERENCE_HEIGHT as u32))
+        return true;
     }
 }

@@ -14,7 +14,7 @@ pub struct Buffer2D {
 }
 
 impl Buffer2D {
-    pub fn new(width: usize, height: usize, colors: Vec<u8>) -> Self {
+    pub const fn new(width: usize, height: usize, colors: Vec<u8>) -> Self {
         Self {
             width: width,
             height: height,

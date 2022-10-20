@@ -2,8 +2,7 @@ mod game;
 mod player;
 mod world;
 
-use common::application::init_application;
-
+use common::platform::init_application;
 use game::Game;
 
 fn main() {

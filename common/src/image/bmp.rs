@@ -75,23 +75,23 @@ pub fn load_bmp(path: &str) -> io::Result<Buffer2D> {
     if header.compression == 0 && header.bits_per_pixel == 24 {
         color_buf = Vec::from_iter(
             color_buf
-                .rchunks_exact_mut(bytes_per_pixel)
+                .chunks_exact_mut(bytes_per_pixel)
                 .map(|c| {
                     let mut n = c.to_owned();
-                    n.reverse();
+                    // n.reverse();
                     n.push(255);
                     n
                 })
                 .flatten(),
         );
 
-        // un-mirror X
-        color_buf = Vec::from_iter(
-            color_buf
-                .chunks(4 * header.width as usize)
-                .flat_map(|row| row.rchunks(4).flatten())
-                .cloned(),
-        );
+        // // un-mirror X
+        // color_buf = Vec::from_iter(
+        //     color_buf
+        //         .chunks(4 * header.width as usize)
+        //         .flat_map(|row| row.rchunks(4).flatten())
+        //         .cloned(),
+        // );
     } else if header.compression == 3 && header.bits_per_pixel == 32 {
         let red_mask = header.red_mask;
         let green_mask = header.green_mask;
@@ -103,19 +103,19 @@ pub fn load_bmp(path: &str) -> io::Result<Buffer2D> {
         let blue_shift = blue_mask.trailing_zeros();
         let alpha_shift = alpha_mask.trailing_zeros();
 
-        color_buf
-            .chunks_exact_mut(bytes_per_pixel)
-            .for_each(|color| {
-                shift_channels(color, red_shift, green_shift, blue_shift, alpha_shift)
-            });
+        // color_buf
+        //     .chunks_exact_mut(bytes_per_pixel)
+        //     .for_each(|color| {
+        //         shift_channels(color, red_shift, green_shift, blue_shift, alpha_shift)
+        //     });
 
-        // un-mirror Y
-        color_buf = Vec::from_iter(
-            color_buf
-                .rchunks(4 * header.width as usize)
-                .flatten()
-                .cloned(),
-        );
+        // // un-mirror Y
+        // color_buf = Vec::from_iter(
+        //     color_buf
+        //         .rchunks(4 * header.width as usize)
+        //         .flatten()
+        //         .cloned(),
+        // );
     }
 
     Ok(Buffer2D::new(

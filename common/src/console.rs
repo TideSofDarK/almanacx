@@ -1,9 +1,6 @@
 use std::cell::RefMut;
 
-use winit_input_helper::WinitInputHelper;
-
 const BG_COLOR: (u8, u8, u8, f32) = (100, 105, 80, 0.8);
-
 pub struct Console {
     width: u32,
     height: u32,
@@ -23,7 +20,7 @@ impl Console {
         }
     }
 
-    pub fn handle_input(&mut self, input: &WinitInputHelper) {}
+    pub fn handle_input(&mut self) {}
 
     pub fn update(&mut self, dt: f32) {
         if self.moving {
