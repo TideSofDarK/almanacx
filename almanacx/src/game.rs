@@ -1,10 +1,9 @@
 use cgmath::{Vector2, Vector3, Vector4, Zero};
 use common::{
-    buffer2d::{Buffer2D, Buffer2DSlice},
+    buffer2d::{virtual_window::VirtualWindow, B2DO, B2DS},
     image::bmp,
     platform::{input::Input, Application},
     renderer::{camera::Camera, utils::draw_grid, Renderer, Vertex},
-    virtual_window::VirtualWindow,
     vk,
 };
 
@@ -29,8 +28,8 @@ pub struct Game {
     pub player: Player,
     pub world: World,
     pub triangles: Vec<(Vertex, Vertex, Vertex)>,
-    pub texture: Buffer2D,
-    pub conchars: Option<Buffer2D>,
+    pub texture: B2DO,
+    pub conchars: B2DO,
     pub x: i32,
     pub y: i32,
 }
@@ -134,8 +133,8 @@ impl Game {
             primary_window: VirtualWindow::new(
                 primary_window_x,
                 primary_window_y,
-                PRIMARY_WIDTH as usize,
-                PRIMARY_HEIGHT as usize,
+                PRIMARY_WIDTH,
+                PRIMARY_HEIGHT,
             ),
             game_state: GameState::Action,
             renderer: Renderer::new(PRIMARY_WIDTH as usize, PRIMARY_HEIGHT as usize),
@@ -149,7 +148,7 @@ impl Game {
             world: World::new(),
             triangles: triangles,
             texture: texture,
-            conchars: Some(conchars),
+            conchars: conchars,
             x: 0,
             y: 0,
         }
@@ -161,7 +160,7 @@ impl Application for Game {
         "Almanac X"
     }
 
-    fn main_loop(&mut self, input: &Input, dt: f32, buffer: Option<&mut Buffer2DSlice>) -> bool {
+    fn main_loop(&mut self, input: &Input, dt: f32, buffer: Option<&mut B2DS>) -> bool {
         if input.is_pressed(27) {
             return false;
         }
@@ -216,7 +215,7 @@ impl Application for Game {
             let mut primary_window_target = self.primary_window.get_buffer_slice();
             primary_window_target.clear();
             let mut ctx = self.renderer.create_context_3d(
-                self.camera.get_projection() * self.player.get_view(),
+                self.camera.proj * self.player.view,
                 &mut primary_window_target,
             );
 
@@ -233,11 +232,9 @@ impl Application for Game {
                 GameState::Automap => {}
             }
 
+            buffer.blit_char('c', 256, 256, &self.conchars);
             buffer.blit_virtual_window(&self.primary_window);
-
-            if let Some(conchars) = &self.conchars {
-                buffer.blit_buffer(conchars, self.x, self.y);
-            }
+            buffer.blit_buffer(&self.conchars, self.x, self.y);
         }
 
         return true;

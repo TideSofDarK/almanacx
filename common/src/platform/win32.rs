@@ -22,7 +22,7 @@ use windows_sys::{
     },
 };
 
-use crate::buffer2d::Buffer2DSlice;
+use crate::buffer2d::B2DS;
 
 use super::{
     input::{Input, INPUT_LMB},
@@ -105,11 +105,12 @@ pub unsafe fn init_application<A: Application>(mut app: A) {
                     * user_data.bitmap_info.bmiHeader.biHeight
                     * 4) as usize,
             );
-            let mut buffer = Buffer2DSlice::new(
-                user_data.bitmap_info.bmiHeader.biWidth as u32,
-                user_data.bitmap_info.bmiHeader.biHeight as u32,
-                color_buffer,
-            );
+
+            let mut buffer = B2DS {
+                width: user_data.bitmap_info.bmiHeader.biWidth,
+                height: user_data.bitmap_info.bmiHeader.biHeight,
+                colors: color_buffer,
+            };
 
             let current = Instant::now();
             let elapsed = current - previous;

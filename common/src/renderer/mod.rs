@@ -5,7 +5,7 @@ pub mod utils;
 
 use cgmath::{Matrix4, Vector2, Vector3, Vector4, VectorSpace, Zero};
 
-use crate::buffer2d::Buffer2DSlice;
+use crate::buffer2d::B2DS;
 
 use self::context3d::RenderContext3D;
 
@@ -27,7 +27,7 @@ impl Renderer {
     pub fn create_context_3d<'c, 'z>(
         &'z mut self,
         view_proj_mat: Matrix4<f32>,
-        draw_target: &'c mut Buffer2DSlice<'c>,
+        draw_target: &'c mut B2DS<'c>,
     ) -> RenderContext3D<'c, 'z> {
         RenderContext3D::new(view_proj_mat, draw_target, self.z_buffer.as_mut_slice())
     }

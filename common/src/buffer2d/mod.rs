@@ -1,27 +1,28 @@
-use std::mem;
+pub mod text;
+pub mod virtual_window;
+
+use std::{
+    mem,
+    ops::{Deref, DerefMut},
+};
 
 use cgmath::Vector3;
 
-use crate::{
-    utils::{blit_buffer_to_buffer, calculate_index},
-    virtual_window::VirtualWindow,
-};
+use crate::utils::calculate_index;
 
-pub struct Buffer2D {
-    pub width: usize,
-    pub height: usize,
-    pub colors: Vec<u8>,
+pub type B2DO = B2D<Vec<u8>>;
+pub type B2DS<'a> = B2D<&'a mut [u8]>;
+
+pub trait B2DT: Deref<Target = [u8]> + DerefMut<Target = [u8]> {}
+impl<T> B2DT for T where T: Deref<Target = [u8]> + DerefMut<Target = [u8]> {}
+
+pub struct B2D<T: B2DT> {
+    pub width: i32,
+    pub height: i32,
+    pub colors: T,
 }
 
-impl Buffer2D {
-    pub const fn new(width: usize, height: usize, colors: Vec<u8>) -> Self {
-        Self {
-            width: width,
-            height: height,
-            colors: colors,
-        }
-    }
-
+impl<T: B2DT> B2D<T> {
     pub fn get_color(&self, x: usize, y: usize) -> Vector3<u8> {
         let index = ((y * self.width as usize) + x) * 4;
         let channels = &self.colors[index..index + 4];
@@ -38,25 +39,9 @@ impl Buffer2D {
 
         self.get_color(x, y)
     }
-}
-
-pub struct Buffer2DSlice<'a> {
-    pub width: i32,
-    pub height: i32,
-    colors: &'a mut [u8],
-}
-
-impl<'c> Buffer2DSlice<'c> {
-    pub fn new(width: u32, height: u32, color_buffer: &'c mut [u8]) -> Self {
-        Self {
-            colors: color_buffer,
-            width: width as i32,
-            height: height as i32,
-        }
-    }
 
     pub fn clear(&mut self) {
-        self.colors.fill(0x00)
+        self.colors.fill(0x00);
     }
 
     pub fn set_color_xy(&mut self, x: i32, y: i32, c: &Vector3<u8>) {
@@ -119,17 +104,7 @@ impl<'c> Buffer2DSlice<'c> {
         }
     }
 
-    pub fn blit_virtual_window(&mut self, virtual_window: &VirtualWindow) {
-        self.blit(
-            &virtual_window.buffer.colors,
-            virtual_window.buffer.width as i32,
-            virtual_window.buffer.height as i32,
-            virtual_window.x,
-            virtual_window.y,
-        )
-    }
-
-    pub fn blit_buffer(&mut self, buffer: &Buffer2D, offset_x: i32, offset_y: i32) {
+    pub fn blit_buffer<A: B2DT>(&mut self, buffer: &B2D<A>, offset_x: i32, offset_y: i32) {
         self.blit(
             &buffer.colors,
             buffer.width as i32,
@@ -139,7 +114,7 @@ impl<'c> Buffer2DSlice<'c> {
         )
     }
 
-    fn blit(
+    pub fn blit(
         &mut self,
         source: &[u8],
         source_width: i32,
@@ -147,15 +122,37 @@ impl<'c> Buffer2DSlice<'c> {
         offset_x: i32,
         offset_y: i32,
     ) {
-        blit_buffer_to_buffer(
-            self.colors,
-            self.width,
-            self.height,
-            source,
-            source_width,
-            source_height,
-            offset_x,
-            offset_y,
-        )
+        let mut source_offset_x = 0;
+        if offset_x < 0 {
+            source_offset_x = offset_x.abs();
+        }
+        let mut image_length_x = source_width - source_offset_x;
+        image_length_x = image_length_x.min(self.width - offset_x);
+        if image_length_x <= 0 {
+            return;
+        }
+
+        let mut source_offset_y = 0;
+        if offset_y < 0 {
+            source_offset_y = offset_y.abs();
+        }
+        let mut image_length_y = source_height - source_offset_y;
+        image_length_y = image_length_y.min(self.height - offset_y);
+        if image_length_y <= 0 {
+            return;
+        }
+
+        let slice_length = image_length_x as usize * 4;
+
+        let dest_offset_x = offset_x.max(0);
+        let dest_offset_y = offset_y.max(0);
+
+        for y in 0..image_length_y {
+            let dest_index = calculate_index(dest_offset_x, y + dest_offset_y, self.width) * 4;
+            let source_index =
+                calculate_index(source_offset_x, y + source_offset_y, source_width) * 4;
+            self.colors[dest_index..dest_index + slice_length]
+                .copy_from_slice(&source[source_index..source_index + slice_length])
+        }
     }
 }

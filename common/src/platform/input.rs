@@ -12,8 +12,8 @@ pub const INPUT_MMB: usize = 255;
 pub struct Input {
     keys: [bool; 256],
     keys_previous: [bool; 256],
-    mouse_x: i32,
-    mouse_y: i32,
+    pub mouse_x: i32,
+    pub mouse_y: i32,
 }
 
 impl Input {
@@ -36,14 +36,6 @@ impl Input {
 
     pub fn is_released(&self, key: usize) -> bool {
         !self.keys[key] && self.keys_previous[key]
-    }
-
-    pub fn get_mouse_x(&self) -> i32 {
-        self.mouse_x
-    }
-
-    pub fn get_mouse_y(&self) -> i32 {
-        self.mouse_y
     }
 
     pub fn cache_previous(&mut self) {

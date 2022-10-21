@@ -4,7 +4,7 @@ use std::{
     mem, slice,
 };
 
-use crate::buffer2d::Buffer2D;
+use crate::buffer2d::B2DO;
 
 const SIGNATURE: u16 = 19778;
 
@@ -34,7 +34,7 @@ struct BMPHeader {
 }
 const HEADER_SIZE: usize = mem::size_of::<BMPHeader>();
 
-pub fn load_bmp(path: &str) -> io::Result<Buffer2D> {
+pub fn load_bmp(path: &str) -> io::Result<B2DO> {
     let mut f = File::open(path)?;
     let mut header: BMPHeader = unsafe { mem::zeroed() };
 
@@ -118,11 +118,11 @@ pub fn load_bmp(path: &str) -> io::Result<Buffer2D> {
         // );
     }
 
-    Ok(Buffer2D::new(
-        header.width as usize,
-        header.height as usize,
-        color_buf,
-    ))
+    Ok(B2DO {
+        width: header.width,
+        height: header.height,
+        colors: color_buf,
+    })
 }
 
 fn shift32(value: u32, shift: u32) -> u32 {

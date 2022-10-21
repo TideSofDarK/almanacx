@@ -1,4 +1,4 @@
-use crate::buffer2d::Buffer2DSlice;
+use crate::buffer2d::B2DS;
 
 use self::input::Input;
 
@@ -10,7 +10,7 @@ mod platform_implementation;
 
 pub trait Application {
     fn get_title(&self) -> &'static str;
-    fn main_loop(&mut self, input: &Input, dt: f32, buffer: Option<&mut Buffer2DSlice>) -> bool;
+    fn main_loop(&mut self, input: &Input, dt: f32, buffer: Option<&mut B2DS>) -> bool;
 }
 
 pub fn init_application<A: Application>(app: A) {

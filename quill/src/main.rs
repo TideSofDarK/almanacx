@@ -4,6 +4,7 @@ mod view;
 use std::time::Instant;
 
 use common::{
+    buffer2d::B2DS,
     console::Console,
     platform::{input::Input, Application},
 };
@@ -17,12 +18,7 @@ impl Application for Quill {
         "Quill"
     }
 
-    fn main_loop(
-        &mut self,
-        input: &Input,
-        dt: f32,
-        buffer: Option<&mut common::buffer2d::Buffer2DSlice>,
-    ) -> bool {
+    fn main_loop(&mut self, input: &Input, dt: f32, buffer: Option<&mut B2DS>) -> bool {
         todo!()
     }
 }

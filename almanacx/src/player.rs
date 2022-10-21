@@ -9,7 +9,7 @@ pub struct Player {
     sign_angle: i16,
     sprint: f32,
 
-    view: Matrix4<f32>,
+    pub view: Matrix4<f32>,
 }
 
 impl Player {
@@ -63,9 +63,5 @@ impl Player {
         self.sign_x = 0;
         self.sign_z = 0;
         self.sprint = 1.0;
-    }
-
-    pub fn get_view(&mut self) -> &Matrix4<f32> {
-        &self.view
     }
 }

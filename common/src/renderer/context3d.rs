@@ -1,7 +1,7 @@
 use cgmath::{InnerSpace, Matrix3, Matrix4, Vector2, Vector3, Vector4};
 
 use crate::{
-    buffer2d::{Buffer2D, Buffer2DSlice},
+    buffer2d::{B2DO, B2DS},
     math::{max3, min3, orient2d},
     utils::calculate_index,
 };
@@ -13,17 +13,17 @@ use super::{
 
 pub struct RenderContext3D<'d, 'r> {
     view_proj_mat: Matrix4<f32>,
-    draw_target: &'d mut Buffer2DSlice<'d>,
+    draw_target: &'d mut B2DS<'d>, // &'d mut Buffer2DSlice<'d>,
     z_buffer: &'r mut [f32],
-    tris_count: u32,
+    pub tris_count: u32,
     viewport: Vector4<f32>,
-    texture: Option<&'d Buffer2D>,
+    texture: Option<&'d B2DO>,
 }
 
 impl<'d, 'r> RenderContext3D<'d, 'r> {
     pub fn new(
         view_proj_mat: Matrix4<f32>,
-        draw_target: &'d mut Buffer2DSlice<'d>,
+        draw_target: &'d mut B2DS<'d>,
         z_buffer: &'r mut [f32],
     ) -> Self {
         let half_width = draw_target.width as f32 / 2.0;
@@ -51,10 +51,6 @@ impl<'d, 'r> RenderContext3D<'d, 'r> {
         self
     }
 
-    pub fn get_tris_count(&self) -> u32 {
-        self.tris_count
-    }
-
     fn perspective_division(&self, mut pos: &mut Vector4<f32>) {
         let inv_w = 1.0 / pos.w;
         pos.x *= inv_w;
@@ -71,7 +67,7 @@ impl<'d, 'r> RenderContext3D<'d, 'r> {
         // pos.z = 0.5 * (depth_range.sum - depth_range.diff * pos.z);
     }
 
-    pub fn push_texture(&mut self, texture: &'d Buffer2D) {
+    pub fn push_texture(&mut self, texture: &'d B2DO) {
         self.texture = Some(texture);
     }
 

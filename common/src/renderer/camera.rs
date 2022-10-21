@@ -5,7 +5,7 @@ use crate::math::{look_at, perspective};
 pub struct Camera {
     near: f32,
     far: f32,
-    proj: Matrix4<f32>,
+    pub proj: Matrix4<f32>,
     view: Matrix4<f32>,
 }
 
@@ -17,10 +17,6 @@ impl Camera {
             proj: perspective(fov, aspect, near, far),
             view: Matrix4::identity(),
         }
-    }
-
-    pub fn get_projection(&self) -> &Matrix4<f32> {
-        &self.proj
     }
 
     pub fn get_view(
