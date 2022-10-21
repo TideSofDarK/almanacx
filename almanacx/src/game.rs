@@ -14,7 +14,7 @@ use common::{
 
 use crate::{player::Player, world::World};
 
-const PRIMARY_WIDTH: i32 = 600;
+const PRIMARY_WIDTH: i32 = 580;
 const PRIMARY_HEIGHT: i32 = 420;
 
 const REFERENCE_WIDTH: i32 = 960;
@@ -49,9 +49,9 @@ impl Game {
         let renderer = Renderer::new(PRIMARY_WIDTH as usize, PRIMARY_HEIGHT as usize);
         let mut camera = Camera::new();
         camera.set_perspective(
-            f32::to_radians(60.0),
+            f32::to_radians(90.0),
             PRIMARY_WIDTH as f32 / PRIMARY_HEIGHT as f32,
-            0.1,
+            0.01,
             100.0,
         );
 

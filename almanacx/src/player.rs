@@ -16,7 +16,7 @@ impl Player {
     pub fn new() -> Self {
         Self {
             walk_speed: 1.45,
-            turn_speed: 1.15,
+            turn_speed: 1.45,
 
             sign_z: 0,
             sign_x: 0,

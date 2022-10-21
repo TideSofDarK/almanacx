@@ -1,4 +1,4 @@
-use cgmath::{InnerSpace, Matrix4, SquareMatrix, Vector3, Zero};
+use cgmath::{InnerSpace, Matrix4, Rad, SquareMatrix, Vector3, Zero};
 
 use crate::math::perspective;
 
@@ -24,7 +24,7 @@ impl Camera {
     }
 
     pub fn set_perspective(&mut self, fov: f32, aspect: f32, near: f32, far: f32) {
-        self.proj = perspective(fov, aspect, near, far);
+        self.proj = cgmath::perspective(Rad(fov), aspect, near, far);
     }
 
     pub fn get_projection(&self) -> &Matrix4<f32> {
