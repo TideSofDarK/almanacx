@@ -8,9 +8,9 @@ use crate::{
 };
 
 pub struct Buffer2D {
-    width: usize,
-    height: usize,
-    colors: Vec<u8>,
+    pub width: usize,
+    pub height: usize,
+    pub colors: Vec<u8>,
 }
 
 impl Buffer2D {
@@ -20,14 +20,6 @@ impl Buffer2D {
             height: height,
             colors: colors,
         }
-    }
-
-    pub fn get_buffer_mut(&mut self) -> &mut [u8] {
-        self.colors.as_mut_slice()
-    }
-
-    pub fn get_buffer(&self) -> &[u8] {
-        self.colors.as_slice()
     }
 
     pub fn get_color(&self, x: usize, y: usize) -> Vector3<u8> {
@@ -40,18 +32,17 @@ impl Buffer2D {
         }
     }
 
-    pub fn get_width(&self) -> usize {
-        self.width
-    }
+    pub fn sample(&self, u: f32, v: f32) -> Vector3<u8> {
+        let x = (u * (self.width as f32 - 1.0)).round() as usize;
+        let y = (v * (self.height as f32 - 1.0)).round() as usize;
 
-    pub fn get_height(&self) -> usize {
-        self.height
+        self.get_color(x, y)
     }
 }
 
 pub struct Buffer2DSlice<'a> {
-    width: i32,
-    height: i32,
+    pub width: i32,
+    pub height: i32,
     colors: &'a mut [u8],
 }
 
@@ -66,22 +57,6 @@ impl<'c> Buffer2DSlice<'c> {
 
     pub fn clear(&mut self) {
         self.colors.fill(0x00)
-    }
-
-    pub fn get_width(&self) -> i32 {
-        self.width
-    }
-
-    pub fn get_height(&self) -> i32 {
-        self.height
-    }
-
-    pub fn get_width_f(&self) -> f32 {
-        self.width as f32
-    }
-
-    pub fn get_height_f(&self) -> f32 {
-        self.height as f32
     }
 
     pub fn set_color_xy(&mut self, x: i32, y: i32, c: &Vector3<u8>) {
@@ -145,21 +120,20 @@ impl<'c> Buffer2DSlice<'c> {
     }
 
     pub fn blit_virtual_window(&mut self, virtual_window: &VirtualWindow) {
-        let image = virtual_window.get_image();
         self.blit(
-            image.get_buffer(),
-            image.get_width() as i32,
-            image.get_height() as i32,
-            virtual_window.get_x(),
-            virtual_window.get_y(),
+            &virtual_window.buffer.colors,
+            virtual_window.buffer.width as i32,
+            virtual_window.buffer.height as i32,
+            virtual_window.x,
+            virtual_window.y,
         )
     }
 
-    pub fn blit_buffer(&mut self, image: &Buffer2D, offset_x: i32, offset_y: i32) {
+    pub fn blit_buffer(&mut self, buffer: &Buffer2D, offset_x: i32, offset_y: i32) {
         self.blit(
-            image.get_buffer(),
-            image.get_width() as i32,
-            image.get_height() as i32,
+            &buffer.colors,
+            buffer.width as i32,
+            buffer.height as i32,
             offset_x,
             offset_y,
         )

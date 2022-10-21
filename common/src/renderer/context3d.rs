@@ -26,8 +26,8 @@ impl<'d, 'r> RenderContext3D<'d, 'r> {
         draw_target: &'d mut Buffer2DSlice<'d>,
         z_buffer: &'r mut [f32],
     ) -> Self {
-        let half_width = draw_target.get_width_f() / 2.0;
-        let half_height = draw_target.get_height_f() / 2.0;
+        let half_width = draw_target.width as f32 / 2.0;
+        let half_height = draw_target.height as f32 / 2.0;
         let viewport = Vector4::new(half_width, half_height, half_width, half_height);
 
         Self {
@@ -166,7 +166,7 @@ impl<'d, 'r> RenderContext3D<'d, 'r> {
 
             for x in min_x..max_x {
                 if (bc_screen_x | bc_screen_y | bc_screen_z) >= 0 {
-                    let index = calculate_index(x, y, self.draw_target.get_width());
+                    let index = calculate_index(x, y, self.draw_target.width);
 
                     let mut bc_clip = Vector3::new(
                         bc_screen_x as f32 / pos_viewport[0].w,
@@ -189,11 +189,7 @@ impl<'d, 'r> RenderContext3D<'d, 'r> {
                                     vertices[1].uv.extend(0.0),
                                     vertices[2].uv.extend(0.0),
                                 ) * bc_clip;
-                                let texture_x =
-                                    (uv.x * (texture.get_width() as f32 - 1.0)).round() as usize;
-                                let texture_y =
-                                    (uv.y * (texture.get_height() as f32 - 1.0)).round() as usize;
-                                texture.get_color(texture_x, texture_y)
+                                texture.sample(uv.x, uv.y)
                             }
                             None => (Matrix3::from_cols(
                                 vertices[0].color,

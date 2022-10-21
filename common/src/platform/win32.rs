@@ -12,13 +12,13 @@ use windows_sys::{
     Win32::{
         Graphics::Gdi::{
             BeginPaint, EndPaint, InvalidateRect, StretchDIBits, UpdateWindow, BITMAPINFO,
-            BITMAPINFOHEADER, BI_RGB, DIB_RGB_COLORS, PAINTSTRUCT, RGBQUAD, SRCCOPY,
+            BITMAPINFOHEADER, DIB_RGB_COLORS, PAINTSTRUCT, SRCCOPY,
         },
         System::{
             LibraryLoader::GetModuleHandleW,
             Memory::{VirtualAlloc, VirtualFree, MEM_COMMIT, MEM_RELEASE, PAGE_READWRITE},
         },
-        UI::HiDpi::{SetProcessDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2},
+        UI::HiDpi::{SetProcessDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE},
     },
 };
 
@@ -29,42 +29,20 @@ use super::{
     Application,
 };
 
-static mut HAS_FOCUS: bool = false;
-static mut BUFFER_PIXELS: *mut u8 = core::ptr::null_mut();
-static mut BUFFER_WIDTH: i32 = 0;
-static mut BUFFER_HEIGHT: i32 = 0;
-static mut INPUT: Input = Input::new();
-
-static mut FRAME_BITMAP_INFO: BITMAPINFO = BITMAPINFO {
-    bmiHeader: BITMAPINFOHEADER {
-        biSize: mem::size_of::<BITMAPINFOHEADER>() as u32,
-        biWidth: 0,
-        biHeight: 0,
-        biPlanes: 1,
-        biBitCount: 32,
-        biCompression: BI_RGB,
-        biSizeImage: 0,
-        biXPelsPerMeter: 0,
-        biYPelsPerMeter: 0,
-        biClrUsed: 0,
-        biClrImportant: 0,
-    },
-    bmiColors: [RGBQUAD {
-        rgbBlue: 0,
-        rgbGreen: 0,
-        rgbRed: 0,
-        rgbReserved: 0,
-    }],
-};
+struct Win32UserData {
+    bitmap_info: BITMAPINFO,
+    pixels: *mut u8,
+    has_focus: bool,
+    input: Input,
+}
 
 pub unsafe fn init_application<A: Application>(mut app: A) {
     let instance = GetModuleHandleW(std::ptr::null());
     debug_assert!(instance != 0);
 
-    SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+    SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE);
 
     let window_class_name = w!("window");
-
     let window_class = WNDCLASSW {
         hCursor: LoadCursorW(0, IDC_ARROW),
         hInstance: instance,
@@ -77,15 +55,22 @@ pub unsafe fn init_application<A: Application>(mut app: A) {
         hbrBackground: 0,
         lpszMenuName: std::ptr::null(),
     };
-
     let atom = RegisterClassW(&window_class);
     debug_assert!(atom != 0);
 
     let screen_width = GetSystemMetrics(SM_CXSCREEN);
     let screen_height = GetSystemMetrics(SM_CYSCREEN);
 
+    let mut user_data: Win32UserData = std::mem::zeroed();
+    user_data.bitmap_info.bmiHeader.biSize = mem::size_of::<BITMAPINFOHEADER>() as u32;
+    user_data.bitmap_info.bmiHeader.biPlanes = 1;
+    user_data.bitmap_info.bmiHeader.biBitCount = 32;
+    let user_data_box = Box::new(user_data);
+    let user_data_ptr = Box::into_raw(user_data_box);
+    let user_data = &mut *(user_data_ptr);
+
     let mut window_title = app.get_title().encode_utf16().collect::<Vec<u16>>();
-    window_title.push('\n' as u16);
+    window_title.push(0);
     let window_handle = CreateWindowExW(
         0,
         window_class_name,
@@ -99,28 +84,32 @@ pub unsafe fn init_application<A: Application>(mut app: A) {
         0,
         0,
         instance,
-        std::ptr::null(),
+        user_data_ptr as *const c_void,
     );
     debug_assert!(window_handle != 0);
-
-    let mut msg: MSG = std::mem::zeroed();
 
     let mut previous = Instant::now();
     let mut accumulator: f32 = 0.0;
 
     const MS_PER_UPDATE: f32 = 1.0 / 45.0;
 
+    let mut msg: MSG = std::mem::zeroed();
     'outer: while msg.message != WM_QUIT {
         if PeekMessageW(&mut msg, 0, 0, 0, PM_REMOVE) != 0 {
             TranslateMessage(&msg);
             DispatchMessageW(&msg);
         } else {
             let color_buffer = slice::from_raw_parts_mut(
-                BUFFER_PIXELS,
-                (BUFFER_WIDTH * BUFFER_HEIGHT * 4) as usize,
+                user_data.pixels,
+                (user_data.bitmap_info.bmiHeader.biWidth
+                    * user_data.bitmap_info.bmiHeader.biHeight
+                    * 4) as usize,
             );
-            let mut buffer =
-                Buffer2DSlice::new(BUFFER_WIDTH as u32, BUFFER_HEIGHT as u32, color_buffer);
+            let mut buffer = Buffer2DSlice::new(
+                user_data.bitmap_info.bmiHeader.biWidth as u32,
+                user_data.bitmap_info.bmiHeader.biHeight as u32,
+                color_buffer,
+            );
 
             let current = Instant::now();
             let elapsed = current - previous;
@@ -131,7 +120,7 @@ pub unsafe fn init_application<A: Application>(mut app: A) {
                 accumulator -= MS_PER_UPDATE;
 
                 if !app.main_loop(
-                    &INPUT,
+                    &user_data.input,
                     MS_PER_UPDATE,
                     if accumulator < MS_PER_UPDATE {
                         Some(&mut buffer)
@@ -142,7 +131,7 @@ pub unsafe fn init_application<A: Application>(mut app: A) {
                     break 'outer;
                 }
 
-                INPUT.cache_previous();
+                user_data.input.cache_previous();
             }
 
             InvalidateRect(window_handle, std::ptr::null(), 0);
@@ -150,6 +139,7 @@ pub unsafe fn init_application<A: Application>(mut app: A) {
         }
     }
 
+    let _ = Box::from_raw(user_data);
     DestroyWindow(window_handle);
     UnregisterClassW(window_class_name, instance);
 }
@@ -160,20 +150,17 @@ unsafe fn get_window_dimensions(window: HWND) -> (i32, i32) {
     return (rect.right - rect.left, rect.bottom - rect.top);
 }
 
-unsafe fn resize_buffer(width: i32, height: i32) {
-    BUFFER_WIDTH = width / 2;
-    BUFFER_HEIGHT = height / 2;
+unsafe fn resize_surface(data: &mut Win32UserData, window_width: i32, window_height: i32) {
+    data.bitmap_info.bmiHeader.biWidth = window_width / 2;
+    data.bitmap_info.bmiHeader.biHeight = window_height / 2;
 
-    FRAME_BITMAP_INFO.bmiHeader.biWidth = BUFFER_WIDTH;
-    FRAME_BITMAP_INFO.bmiHeader.biHeight = BUFFER_HEIGHT;
-
-    if !BUFFER_PIXELS.is_null() {
-        VirtualFree(BUFFER_PIXELS as *mut c_void, 0, MEM_RELEASE);
+    if !data.pixels.is_null() {
+        VirtualFree(data.pixels as *mut c_void, 0, MEM_RELEASE);
     }
 
-    BUFFER_PIXELS = VirtualAlloc(
+    data.pixels = VirtualAlloc(
         std::ptr::null(),
-        (BUFFER_WIDTH * BUFFER_HEIGHT * 4) as usize,
+        (data.bitmap_info.bmiHeader.biWidth * data.bitmap_info.bmiHeader.biHeight * 4) as usize,
         MEM_COMMIT,
         PAGE_READWRITE,
     ) as *mut u8;
@@ -185,6 +172,17 @@ unsafe extern "system" fn main_window_callback(
     wparam: WPARAM,
     lparam: LPARAM,
 ) -> LRESULT {
+    if message == WM_CREATE {
+        let ptr = std::mem::transmute::<*mut c_void, *mut Win32UserData>(
+            (*std::mem::transmute::<LPARAM, *mut CREATESTRUCTW>(lparam)).lpCreateParams,
+        );
+        SetWindowLongPtrW(window_handle, GWLP_USERDATA, ptr as *const _ as _);
+
+        return 0;
+    }
+
+    let data = &mut *(GetWindowLongPtrW(window_handle, GWLP_USERDATA) as *mut Win32UserData);
+
     match message {
         WM_ERASEBKGND => {
             return 1;
@@ -201,35 +199,35 @@ unsafe extern "system" fn main_window_callback(
                 dimensions.1,
                 0,
                 0,
-                BUFFER_WIDTH,
-                BUFFER_HEIGHT,
-                BUFFER_PIXELS as *mut core::ffi::c_void,
-                &FRAME_BITMAP_INFO,
+                data.bitmap_info.bmiHeader.biWidth,
+                data.bitmap_info.bmiHeader.biHeight,
+                data.pixels as *mut core::ffi::c_void,
+                &data.bitmap_info,
                 DIB_RGB_COLORS,
                 SRCCOPY,
             );
             EndPaint(window_handle, &mut ps);
         }
         WM_LBUTTONDOWN => {
-            INPUT.set_key(INPUT_LMB, true);
+            data.input.set_key(INPUT_LMB, true);
         }
         WM_LBUTTONUP => {
-            INPUT.set_key(INPUT_LMB, false);
+            data.input.set_key(INPUT_LMB, false);
         }
         WM_RBUTTONDOWN => {
-            INPUT.set_key(INPUT_LMB, true);
+            data.input.set_key(INPUT_LMB, true);
         }
         WM_RBUTTONUP => {
-            INPUT.set_key(INPUT_LMB, false);
+            data.input.set_key(INPUT_LMB, false);
         }
         WM_MBUTTONDOWN => {
-            INPUT.set_key(INPUT_LMB, true);
+            data.input.set_key(INPUT_LMB, true);
         }
         WM_MBUTTONUP => {
-            INPUT.set_key(INPUT_LMB, false);
+            data.input.set_key(INPUT_LMB, false);
         }
         WM_SYSKEYDOWN | WM_SYSKEYUP | WM_KEYDOWN | WM_KEYUP => {
-            if !HAS_FOCUS {
+            if !data.has_focus {
                 return 0;
             }
 
@@ -237,21 +235,21 @@ unsafe extern "system" fn main_window_callback(
             let key_was_down = (lparam & (1 << 30)) != 0;
 
             if key_is_down && !key_was_down {
-                INPUT.set_key(wparam, true);
+                data.input.set_key(wparam, true);
             } else if key_was_down && !key_is_down {
-                INPUT.set_key(wparam, false);
+                data.input.set_key(wparam, false);
             }
         }
         WM_KILLFOCUS => {
-            HAS_FOCUS = false;
-            INPUT = mem::zeroed();
+            data.has_focus = false;
+            data.input = mem::zeroed();
         }
         WM_SETFOCUS => {
-            HAS_FOCUS = true;
+            data.has_focus = true;
         }
         WM_SIZE => {
             let dimensions = get_window_dimensions(window_handle);
-            resize_buffer(dimensions.0, dimensions.1);
+            resize_surface(data, dimensions.0, dimensions.1);
         }
         WM_DESTROY | WM_QUIT => {
             PostQuitMessage(0);

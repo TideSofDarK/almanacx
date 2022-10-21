@@ -3,9 +3,9 @@ use cgmath::Vector3;
 use crate::buffer2d::{Buffer2D, Buffer2DSlice};
 
 pub struct VirtualWindow {
-    x: i32,
-    y: i32,
-    image: Buffer2D,
+    pub x: i32,
+    pub y: i32,
+    pub buffer: Buffer2D,
 }
 
 impl VirtualWindow {
@@ -13,25 +13,13 @@ impl VirtualWindow {
         Self {
             x: x,
             y: y,
-            image: Buffer2D::new(width, height, vec![0; width * height * 4]),
+            buffer: Buffer2D::new(width, height, vec![0; width * height * 4]),
         }
     }
 
-    pub fn get_x(&self) -> i32 {
-        self.x
-    }
-
-    pub fn get_y(&self) -> i32 {
-        self.y
-    }
-
-    pub fn get_image(&self) -> &Buffer2D {
-        &self.image
-    }
-
     pub fn get_buffer_slice(&mut self) -> Buffer2DSlice {
-        let width = self.image.get_width() as u32;
-        let height = self.image.get_height() as u32;
-        Buffer2DSlice::new(width, height, self.image.get_buffer_mut())
+        let width = self.buffer.width as u32;
+        let height = self.buffer.height as u32;
+        Buffer2DSlice::new(width, height, &mut self.buffer.colors)
     }
 }

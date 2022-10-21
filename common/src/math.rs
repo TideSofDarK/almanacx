@@ -34,17 +34,33 @@ pub fn orient2d(a: Vector2<i32>, b: Vector2<i32>, x: i32, y: i32) -> i32 {
 }
 
 pub fn perspective(fov: f32, aspect: f32, near: f32, far: f32) -> Matrix4<f32> {
-    let mut m = Matrix4::identity();
+    let ymax = near * (fov / 2.0).tan();
+    let xmax = ymax * aspect;
 
-    let tan_half_fov_inverse = 1.0 / (fov * 0.5).tan();
+    let c0r0 = (2.0 * near) / (xmax - -xmax);
+    let c0r1 = 0.0;
+    let c0r2 = 0.0;
+    let c0r3 = 0.0;
 
-    m[0][0] = tan_half_fov_inverse / aspect;
-    m[1][1] = tan_half_fov_inverse;
-    m[2][2] = -far / (far - near);
-    m[3][2] = -(far * near) / (far - near);
-    m[2][3] = -1.0;
+    let c1r0 = 0.0;
+    let c1r1 = (2.0 * near) / (ymax - -ymax);
+    let c1r2 = 0.0;
+    let c1r3 = 0.0;
 
-    m
+    let c2r0 = (xmax + -xmax) / (xmax - -xmax);
+    let c2r1 = (ymax + -ymax) / (ymax - -ymax);
+    let c2r2 = -(far + near) / (far - near);
+    let c2r3 = -1.0;
+
+    let c3r0 = 0.0;
+    let c3r1 = 0.0;
+    let c3r2 = -(2.0 * far * near) / (far - near);
+    let c3r3 = 0.0;
+
+    Matrix4::new(
+        c0r0, c0r1, c0r2, c0r3, c1r0, c1r1, c1r2, c1r3, c2r0, c2r1, c2r2, c2r3, c3r0, c3r1, c3r2,
+        c3r3,
+    )
 }
 
 pub fn look_at(eye: Vector3<f32>, center: Vector3<f32>, up: Vector3<f32>) -> Matrix4<f32> {

@@ -2,14 +2,10 @@ use cgmath::{Vector2, Vector3, Vector4, Zero};
 use common::{
     buffer2d::{Buffer2D, Buffer2DSlice},
     image::bmp,
-    platform::{
-        input::{Input, INPUT_LMB},
-        Application,
-    },
+    platform::{input::Input, Application},
     renderer::{camera::Camera, utils::draw_grid, Renderer, Vertex},
     virtual_window::VirtualWindow,
     vk,
-    wad::{self},
 };
 
 use crate::{player::Player, world::World};
@@ -41,19 +37,8 @@ pub struct Game {
 
 impl Game {
     pub fn new() -> Self {
+        let texture = bmp::load_bmp("./assets/floor.bmp").expect("no such bmp file");
         let conchars = bmp::load_bmp("./assets/conchars.bmp").expect("no such bmp file");
-
-        let wad = wad::load("./assets/DOOM1.WAD").expect("no such wad file");
-        let map_data = wad.get_map_data("E1M1").expect("no such map");
-
-        let renderer = Renderer::new(PRIMARY_WIDTH as usize, PRIMARY_HEIGHT as usize);
-        let mut camera = Camera::new();
-        camera.set_perspective(
-            f32::to_radians(90.0),
-            PRIMARY_WIDTH as f32 / PRIMARY_HEIGHT as f32,
-            0.01,
-            100.0,
-        );
 
         let mut triangles: Vec<(Vertex, Vertex, Vertex)> = vec![];
         for x in 0..5 {
@@ -153,12 +138,17 @@ impl Game {
                 PRIMARY_HEIGHT as usize,
             ),
             game_state: GameState::Action,
-            renderer: renderer,
-            camera: camera,
+            renderer: Renderer::new(PRIMARY_WIDTH as usize, PRIMARY_HEIGHT as usize),
+            camera: Camera::perspective(
+                f32::to_radians(90.0),
+                PRIMARY_WIDTH as f32 / PRIMARY_HEIGHT as f32,
+                0.01,
+                100.0,
+            ),
             player: Player::new(),
-            world: World::new(map_data),
+            world: World::new(),
             triangles: triangles,
-            texture: wad.load_texture_into_buffer("WALL03_7"),
+            texture: texture,
             conchars: Some(conchars),
             x: 0,
             y: 0,
@@ -240,20 +230,7 @@ impl Application for Game {
                     }
                     ctx.pop_texture();
                 }
-                GameState::Automap => {
-                    let vertices = self.world.get_vertices();
-
-                    for v in self.world.get_linedefs() {
-                        ctx.draw_line(
-                            vertices[v.x].pos,
-                            vertices[v.y].pos,
-                            Vector3::new(255, 255, 255),
-                        );
-
-                        // ctx.draw_gizmo(vertices[v.x]);
-                        // ctx.draw_gizmo(vertices[v.y]);
-                    }
-                }
+                GameState::Automap => {}
             }
 
             buffer.blit_virtual_window(&self.primary_window);
