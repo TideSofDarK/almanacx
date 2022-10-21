@@ -22,7 +22,7 @@ use windows_sys::{
     },
 };
 
-use crate::buffer2d::B2DS;
+use crate::buffer2d::{B2D, B2DS};
 
 use super::{
     input::{Input, INPUT_LMB},
@@ -102,13 +102,13 @@ pub unsafe fn init_application<A: Application>(mut app: A) {
             let color_buffer = slice::from_raw_parts_mut(
                 user_data.pixels,
                 (user_data.bitmap_info.bmiHeader.biWidth
-                    * user_data.bitmap_info.bmiHeader.biHeight
+                    * user_data.bitmap_info.bmiHeader.biHeight.abs()
                     * 4) as usize,
             );
 
             let mut buffer = B2DS {
                 width: user_data.bitmap_info.bmiHeader.biWidth,
-                height: user_data.bitmap_info.bmiHeader.biHeight,
+                height: user_data.bitmap_info.bmiHeader.biHeight.abs(),
                 colors: color_buffer,
             };
 
@@ -153,7 +153,7 @@ unsafe fn get_window_dimensions(window: HWND) -> (i32, i32) {
 
 unsafe fn resize_surface(data: &mut Win32UserData, window_width: i32, window_height: i32) {
     data.bitmap_info.bmiHeader.biWidth = window_width / 2;
-    data.bitmap_info.bmiHeader.biHeight = window_height / 2;
+    data.bitmap_info.bmiHeader.biHeight = -window_height / 2;
 
     if !data.pixels.is_null() {
         VirtualFree(data.pixels as *mut c_void, 0, MEM_RELEASE);
@@ -161,7 +161,8 @@ unsafe fn resize_surface(data: &mut Win32UserData, window_width: i32, window_hei
 
     data.pixels = VirtualAlloc(
         std::ptr::null(),
-        (data.bitmap_info.bmiHeader.biWidth * data.bitmap_info.bmiHeader.biHeight * 4) as usize,
+        (data.bitmap_info.bmiHeader.biWidth * data.bitmap_info.bmiHeader.biHeight.abs() * 4)
+            as usize,
         MEM_COMMIT,
         PAGE_READWRITE,
     ) as *mut u8;
@@ -201,7 +202,7 @@ unsafe extern "system" fn main_window_callback(
                 0,
                 0,
                 data.bitmap_info.bmiHeader.biWidth,
-                data.bitmap_info.bmiHeader.biHeight,
+                data.bitmap_info.bmiHeader.biHeight.abs(),
                 data.pixels as *mut core::ffi::c_void,
                 &data.bitmap_info,
                 DIB_RGB_COLORS,

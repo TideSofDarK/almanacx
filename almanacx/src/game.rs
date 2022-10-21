@@ -1,6 +1,6 @@
 use cgmath::{Vector2, Vector3, Vector4, Zero};
 use common::{
-    buffer2d::{virtual_window::VirtualWindow, B2DO, B2DS},
+    buffer2d::{text::Font, virtual_window::VirtualWindow, B2DO, B2DS},
     image::bmp,
     platform::{input::Input, Application},
     renderer::{camera::Camera, utils::draw_grid, Renderer, Vertex},
@@ -9,8 +9,8 @@ use common::{
 
 use crate::{player::Player, world::World};
 
-const PRIMARY_WIDTH: i32 = 580;
-const PRIMARY_HEIGHT: i32 = 420;
+const PRIMARY_WIDTH: i32 = 480;
+const PRIMARY_HEIGHT: i32 = 320;
 
 const REFERENCE_WIDTH: i32 = 960;
 const REFERENCE_HEIGHT: i32 = 540;
@@ -29,7 +29,7 @@ pub struct Game {
     pub world: World,
     pub triangles: Vec<(Vertex, Vertex, Vertex)>,
     pub texture: B2DO,
-    pub conchars: B2DO,
+    pub font: Font,
     pub x: i32,
     pub y: i32,
 }
@@ -37,7 +37,6 @@ pub struct Game {
 impl Game {
     pub fn new() -> Self {
         let texture = bmp::load_bmp("./assets/floor.bmp").expect("no such bmp file");
-        let conchars = bmp::load_bmp("./assets/conchars.bmp").expect("no such bmp file");
 
         let mut triangles: Vec<(Vertex, Vertex, Vertex)> = vec![];
         for x in 0..5 {
@@ -61,7 +60,7 @@ impl Game {
                     uv: Vector2::new(0.0, 0.0),
                 };
 
-                triangles.push((v2, v1, v0));
+                triangles.push((v0, v1, v2));
 
                 let v0 = Vertex {
                     pos: Vector4::new(-0.25 + offset_x, offset_y, offset_z + 0.25, 1.0),
@@ -79,7 +78,7 @@ impl Game {
                     uv: Vector2::new(0.0, 0.0),
                 };
 
-                triangles.push((v0, v1, v2));
+                triangles.push((v2, v1, v0));
             }
         }
 
@@ -126,16 +125,24 @@ impl Game {
             }
         }
 
+        let font = Font {
+            bitmap: bmp::load_bmp("./assets/conchars.bmp").expect("no such bmp file"),
+            char_size: 8,
+            offset_x: 0,
+            offset_y: 2,
+        };
+
         let primary_window_x = ((REFERENCE_WIDTH - PRIMARY_WIDTH) / 2) as i32;
         let primary_window_y = ((REFERENCE_HEIGHT - PRIMARY_HEIGHT) / 2) as i32;
+        let mut primary_window = VirtualWindow::new(
+            primary_window_x,
+            primary_window_y,
+            PRIMARY_WIDTH,
+            PRIMARY_HEIGHT,
+        );
 
         Self {
-            primary_window: VirtualWindow::new(
-                primary_window_x,
-                primary_window_y,
-                PRIMARY_WIDTH,
-                PRIMARY_HEIGHT,
-            ),
+            primary_window: primary_window,
             game_state: GameState::Action,
             renderer: Renderer::new(PRIMARY_WIDTH as usize, PRIMARY_HEIGHT as usize),
             camera: Camera::perspective(
@@ -148,7 +155,7 @@ impl Game {
             world: World::new(),
             triangles: triangles,
             texture: texture,
-            conchars: conchars,
+            font: font,
             x: 0,
             y: 0,
         }
@@ -187,10 +194,6 @@ impl Application for Game {
         // if input.key_held(VirtualKeyCode::Left) {
         //     self.x -= 3;
         // }
-
-        // // if input.key_pressed(VirtualKeyCode::F11) {
-        // //     println!("{:?}", self.renderer.get_tris_count());
-        // // }
 
         // if input.key_pressed(VirtualKeyCode::Tab) {
         //     self.game_state = match self.game_state {
@@ -232,9 +235,18 @@ impl Application for Game {
                 GameState::Automap => {}
             }
 
-            buffer.blit_char('c', 256, 256, &self.conchars);
+            if input.is_pressed(vk!('T')) {
+                println!("{:?}", ctx.tris_count);
+            }
+
+            self.primary_window.buffer.blit_str(
+                "Dota 3 for Windows NT 4.0",
+                PRIMARY_WIDTH / 2,
+                PRIMARY_HEIGHT / 2,
+                &self.font,
+            );
             buffer.blit_virtual_window(&self.primary_window);
-            buffer.blit_buffer(&self.conchars, self.x, self.y);
+            // buffer.blit_buffer(&self.font.bitmap, self.x, self.y);
         }
 
         return true;

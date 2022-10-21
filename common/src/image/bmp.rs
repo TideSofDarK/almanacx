@@ -109,13 +109,13 @@ pub fn load_bmp(path: &str) -> io::Result<B2DO> {
         //         shift_channels(color, red_shift, green_shift, blue_shift, alpha_shift)
         //     });
 
-        // // un-mirror Y
-        // color_buf = Vec::from_iter(
-        //     color_buf
-        //         .rchunks(4 * header.width as usize)
-        //         .flatten()
-        //         .cloned(),
-        // );
+        // un-mirror Y
+        color_buf = Vec::from_iter(
+            color_buf
+                .rchunks(4 * header.width as usize)
+                .flatten()
+                .cloned(),
+        );
     }
 
     Ok(B2DO {

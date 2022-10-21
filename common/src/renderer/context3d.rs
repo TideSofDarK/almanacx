@@ -60,7 +60,7 @@ impl<'d, 'r> RenderContext3D<'d, 'r> {
 
     fn transform_viewport(&self, pos: &mut Vector4<f32>) {
         pos.x = pos.x * self.viewport.x as f32 + self.viewport.z;
-        pos.y = pos.y * self.viewport.y as f32 + self.viewport.w;
+        pos.y = -pos.y * self.viewport.y as f32 + self.viewport.w;
         pos.x = pos.x.round();
         pos.y = pos.y.round();
 

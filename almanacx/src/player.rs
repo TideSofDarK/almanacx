@@ -25,7 +25,7 @@ impl Player {
 
             view: Matrix4::look_to_lh(
                 Point3::new(0.0, 0.5, 0.0),
-                Vector3::unit_z(),
+                -Vector3::unit_z(),
                 Vector3::unit_y(),
             ),
         }
