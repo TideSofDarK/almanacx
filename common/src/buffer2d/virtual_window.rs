@@ -1,4 +1,4 @@
-use crate::buffer2d::{B2D, B2DO, B2DS};
+use crate::buffer2d::{B2D, B2DO};
 
 use super::B2DT;
 
@@ -18,14 +18,6 @@ impl VirtualWindow {
                 height: height,
                 colors: vec![0; (width * height * 4) as usize],
             },
-        }
-    }
-
-    pub fn get_buffer_slice(&mut self) -> B2DS {
-        B2DS {
-            width: self.buffer.width,
-            height: self.buffer.height,
-            colors: &mut self.buffer.colors,
         }
     }
 }

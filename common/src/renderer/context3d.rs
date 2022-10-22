@@ -1,7 +1,7 @@
 use cgmath::{InnerSpace, Matrix3, Matrix4, Vector2, Vector3, Vector4};
 
 use crate::{
-    buffer2d::{B2DO, B2DS},
+    buffer2d::{B2D, B2DO, B2DT},
     math::{max3, min3, orient2d},
     utils::calculate_index,
 };
@@ -11,28 +11,28 @@ use super::{
     Vertex,
 };
 
-pub struct RenderContext3D<'d, 'r> {
+pub struct RenderContext3D<'d, 'r, T: B2DT> {
     view_proj_mat: Matrix4<f32>,
-    draw_target: &'d mut B2DS<'d>, // &'d mut Buffer2DSlice<'d>,
+    color_buffer: &'d mut B2D<T>,
     z_buffer: &'r mut [f32],
     pub tris_count: u32,
     viewport: Vector4<f32>,
     texture: Option<&'d B2DO>,
 }
 
-impl<'d, 'r> RenderContext3D<'d, 'r> {
+impl<'d, 'r, T: B2DT> RenderContext3D<'d, 'r, T> {
     pub fn new(
         view_proj_mat: Matrix4<f32>,
-        draw_target: &'d mut B2DS<'d>,
+        color_buffer: &'d mut B2D<T>,
         z_buffer: &'r mut [f32],
     ) -> Self {
-        let half_width = draw_target.width as f32 / 2.0;
-        let half_height = draw_target.height as f32 / 2.0;
+        let half_width = color_buffer.width as f32 / 2.0;
+        let half_height = color_buffer.height as f32 / 2.0;
         let viewport = Vector4::new(half_width, half_height, half_width, half_height);
 
         Self {
             view_proj_mat: view_proj_mat,
-            draw_target: draw_target,
+            color_buffer,
             z_buffer: z_buffer,
             tris_count: 0,
             viewport: viewport,
@@ -83,7 +83,7 @@ impl<'d, 'r> RenderContext3D<'d, 'r> {
         self.perspective_division(&mut v.pos);
         self.transform_viewport(&mut v.pos);
 
-        self.draw_target.set_color_xy(
+        self.color_buffer.set_color_xy(
             v.pos.x as i32,
             v.pos.y as i32,
             &Vector3::new(
@@ -105,7 +105,7 @@ impl<'d, 'r> RenderContext3D<'d, 'r> {
             self.transform_viewport(&mut p0);
             self.transform_viewport(&mut p1);
 
-            self.draw_target
+            self.color_buffer
                 .draw_line_2d(p0.truncate(), p1.truncate(), &c);
         }
     }
@@ -162,7 +162,7 @@ impl<'d, 'r> RenderContext3D<'d, 'r> {
 
             for x in min_x..max_x {
                 if (bc_screen_x | bc_screen_y | bc_screen_z) >= 0 {
-                    let index = calculate_index(x, y, self.draw_target.width);
+                    let index = calculate_index(x, y, self.color_buffer.width);
 
                     let mut bc_clip = Vector3::new(
                         bc_screen_x as f32 / pos_viewport[0].w,
@@ -195,7 +195,7 @@ impl<'d, 'r> RenderContext3D<'d, 'r> {
                                 .map(|c| ((c * 255.0) as u8)),
                         };
 
-                        self.draw_target.set_color_by_index(index * 4, &color);
+                        self.color_buffer.set_color_by_index(index * 4, &color);
                     }
                 }
 

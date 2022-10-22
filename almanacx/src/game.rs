@@ -134,7 +134,7 @@ impl Game {
 
         let primary_window_x = ((REFERENCE_WIDTH - PRIMARY_WIDTH) / 2) as i32;
         let primary_window_y = ((REFERENCE_HEIGHT - PRIMARY_HEIGHT) / 2) as i32;
-        let mut primary_window = VirtualWindow::new(
+        let primary_window = VirtualWindow::new(
             primary_window_x,
             primary_window_y,
             PRIMARY_WIDTH,
@@ -167,7 +167,7 @@ impl Application for Game {
         "Almanac X"
     }
 
-    fn main_loop(&mut self, input: &Input, dt: f32, buffer: Option<&mut B2DS>) -> bool {
+    fn main_loop(&mut self, input: &Input, dt: f32, main_buffer: Option<&mut B2DS>) -> bool {
         if input.is_pressed(27) {
             return false;
         }
@@ -212,14 +212,13 @@ impl Application for Game {
 
         self.player.update(dt);
 
-        if let Some(buffer) = buffer {
+        if let Some(buffer) = main_buffer {
             self.renderer.begin();
 
-            let mut primary_window_target = self.primary_window.get_buffer_slice();
-            primary_window_target.clear();
+            self.primary_window.buffer.clear();
             let mut ctx = self.renderer.create_context_3d(
                 self.camera.proj * self.player.view,
-                &mut primary_window_target,
+                &mut self.primary_window.buffer,
             );
 
             draw_grid(&mut ctx, Vector3::<f32>::zero(), 0.5);

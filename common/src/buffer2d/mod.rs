@@ -10,11 +10,11 @@ use cgmath::Vector3;
 
 use crate::utils::calculate_index;
 
-pub type B2DO = B2D<Vec<u8>>;
-pub type B2DS<'a> = B2D<&'a mut [u8]>;
-
 pub trait B2DT: Deref<Target = [u8]> + DerefMut<Target = [u8]> {}
 impl<T> B2DT for T where T: Deref<Target = [u8]> + DerefMut<Target = [u8]> {}
+
+pub type B2DO = B2D<Vec<u8>>;
+pub type B2DS<'a> = B2D<&'a mut [u8]>;
 
 pub struct B2D<T: B2DT> {
     pub width: i32,
