@@ -18,6 +18,7 @@ pub struct RenderContext3D<'d, 'r, T: B2DT> {
     pub tris_count: u32,
     viewport: Vector4<f32>,
     texture: Option<&'d B2DO>,
+    vertices_to_clip: Vec<Vertex>,
 }
 
 impl<'d, 'r, T: B2DT> RenderContext3D<'d, 'r, T> {
@@ -37,6 +38,7 @@ impl<'d, 'r, T: B2DT> RenderContext3D<'d, 'r, T> {
             tris_count: 0,
             viewport: viewport,
             texture: None,
+            vertices_to_clip: Vec::with_capacity(6),
         }
     }
 
@@ -213,15 +215,23 @@ impl<'d, 'r, T: B2DT> RenderContext3D<'d, 'r, T> {
     }
 
     pub fn draw_triangle(&mut self, v0w: &Vertex, v1w: &Vertex, v2w: &Vertex) {
-        let mut vs = vec![*v0w, *v1w, *v2w];
+        self.vertices_to_clip.clear();
+
+        self.vertices_to_clip.push(*v0w);
+        self.vertices_to_clip.push(*v1w);
+        self.vertices_to_clip.push(*v2w);
 
         for i in 0..3 {
-            vs[i].pos = self.view_proj_mat * vs[i].pos;
+            self.vertices_to_clip[i].pos = self.view_proj_mat * self.vertices_to_clip[i].pos;
         }
 
-        if let Some(indices) = clip_triangle_to_frustum(&mut vs) {
+        if let Some(indices) = clip_triangle_to_frustum(&mut self.vertices_to_clip) {
             for triangle in indices.chunks(3) {
-                self.rasterize_triangle(vs[triangle[0]], vs[triangle[1]], vs[triangle[2]]);
+                self.rasterize_triangle(
+                    self.vertices_to_clip[triangle[0]],
+                    self.vertices_to_clip[triangle[1]],
+                    self.vertices_to_clip[triangle[2]],
+                );
             }
         }
     }
