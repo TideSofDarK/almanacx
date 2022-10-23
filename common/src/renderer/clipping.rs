@@ -2,7 +2,7 @@ use std::mem;
 
 use cgmath::{InnerSpace, Vector4, VectorSpace};
 
-use super::Vertex;
+use super::VertexStorage;
 
 pub const FRUSTUM_CLIP_MASK: [u8; 6] = [1 << 0, 1 << 1, 1 << 2, 1 << 3, 1 << 4, 1 << 5];
 
@@ -106,42 +106,45 @@ pub fn clip_line_to_frustum(
     return Some((p0, p1));
 }
 
-pub fn clip_triangle_to_frustum(vs: &mut Vec<Vertex>) -> Option<Vec<usize>> {
-    let mut indices: Vec<usize> = vec![0, 1, 2];
-
-    let mask = count_frustum_clip_mask(&vs[0].pos)
-        | count_frustum_clip_mask(&vs[1].pos)
-        | count_frustum_clip_mask(&vs[2].pos);
+pub fn clip_triangle_to_frustum(vertex_storage: &mut VertexStorage) -> bool {
+    let mask = count_frustum_clip_mask(&vertex_storage.vertices[0].pos)
+        | count_frustum_clip_mask(&vertex_storage.vertices[1].pos)
+        | count_frustum_clip_mask(&vertex_storage.vertices[2].pos);
 
     if mask == 0 {
-        return Some(indices);
+        return true;
     }
 
-    let mut indices_in: Vec<usize> = vec![0, 1, 2];
-    let mut indices_out: Vec<usize> = vec![];
+    vertex_storage.indices_in.clear();
+    vertex_storage.indices_in.push(0);
+    vertex_storage.indices_in.push(1);
+    vertex_storage.indices_in.push(2);
+
+    vertex_storage.indices_out.clear();
 
     let mut full_clip = false;
 
     for plane_index in 0..6 {
         if (mask & FRUSTUM_CLIP_MASK[plane_index]) != 0 {
-            if indices_in.len() < 3 {
+            if vertex_storage.indices_in.len() < 3 {
                 full_clip = true;
                 break;
             }
 
-            indices_out.clear();
+            vertex_storage.indices_out.clear();
 
-            let mut idx_pre = indices_in[0];
-            let mut d_pre = FRUSTUM_CLIP_PLANE[plane_index].dot(vs[idx_pre].pos);
+            let mut idx_pre = vertex_storage.indices_in[0];
+            let mut d_pre =
+                FRUSTUM_CLIP_PLANE[plane_index].dot(vertex_storage.vertices[idx_pre].pos);
 
-            indices_in.push(idx_pre);
+            vertex_storage.indices_in.push(idx_pre);
 
-            for i in 1..indices_in.len() {
-                let idx = indices_in[i];
-                let d = FRUSTUM_CLIP_PLANE[plane_index].dot(vs[idx].pos);
+            for i in 1..vertex_storage.indices_in.len() {
+                let idx = vertex_storage.indices_in[i];
+                let d = FRUSTUM_CLIP_PLANE[plane_index].dot(vertex_storage.vertices[idx].pos);
 
                 if d_pre >= 0.0 {
-                    indices_out.push(idx_pre);
+                    vertex_storage.indices_out.push(idx_pre);
                 }
 
                 if d_pre.is_sign_negative() ^ d.is_sign_negative() {
@@ -150,33 +153,41 @@ pub fn clip_triangle_to_frustum(vs: &mut Vec<Vertex>) -> Option<Vec<usize>> {
                     } else {
                         -d_pre / (d - d_pre)
                     };
-                    let vertex = vs[idx_pre].lerp(&vs[idx], t);
+                    let vertex =
+                        vertex_storage.vertices[idx_pre].lerp(&vertex_storage.vertices[idx], t);
 
-                    vs.push(vertex);
-                    indices_out.push((vs.len() - 1) as usize);
+                    vertex_storage.vertices.push(vertex);
+                    vertex_storage
+                        .indices_out
+                        .push((vertex_storage.vertices.len() - 1) as usize);
                 }
 
                 idx_pre = idx;
                 d_pre = d;
             }
 
-            mem::swap(&mut indices_in, &mut indices_out);
+            mem::swap(
+                &mut vertex_storage.indices_in,
+                &mut vertex_storage.indices_out,
+            );
         }
     }
 
-    if (full_clip || indices_in.is_empty()) {
-        return None;
+    if full_clip || vertex_storage.indices_in.is_empty() {
+        return false;
     }
 
-    indices[0] = indices_in[0];
-    indices[1] = indices_in[1];
-    indices[2] = indices_in[2];
+    vertex_storage.indices[0] = vertex_storage.indices_in[0];
+    vertex_storage.indices[1] = vertex_storage.indices_in[1];
+    vertex_storage.indices[2] = vertex_storage.indices_in[2];
 
-    for i in 3..indices_in.len() {
-        indices.push(indices_in[0]);
-        indices.push(indices_in[i - 1]);
-        indices.push(indices_in[i]);
+    for i in 3..vertex_storage.indices_in.len() {
+        vertex_storage.indices.push(vertex_storage.indices_in[0]);
+        vertex_storage
+            .indices
+            .push(vertex_storage.indices_in[i - 1]);
+        vertex_storage.indices.push(vertex_storage.indices_in[i]);
     }
 
-    Some(indices)
+    true
 }

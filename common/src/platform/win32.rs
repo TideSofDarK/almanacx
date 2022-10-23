@@ -22,7 +22,7 @@ use windows_sys::{
     },
 };
 
-use crate::buffer2d::{B2D, B2DS};
+use crate::buffer2d::B2DS;
 
 use super::{
     input::{Input, INPUT_LMB},
@@ -109,7 +109,7 @@ pub unsafe fn init_application<A: Application>(mut app: A) {
             let mut buffer = B2DS {
                 width: user_data.bitmap_info.bmiHeader.biWidth,
                 height: user_data.bitmap_info.bmiHeader.biHeight.abs(),
-                colors: color_buffer,
+                pixels: color_buffer,
             };
 
             let current = Instant::now();
@@ -140,9 +140,9 @@ pub unsafe fn init_application<A: Application>(mut app: A) {
         }
     }
 
-    let _ = Box::from_raw(user_data);
     DestroyWindow(window_handle);
     UnregisterClassW(window_class_name, instance);
+    let _ = Box::from_raw(user_data);
 }
 
 unsafe fn get_window_dimensions(window: HWND) -> (i32, i32) {
@@ -152,8 +152,8 @@ unsafe fn get_window_dimensions(window: HWND) -> (i32, i32) {
 }
 
 unsafe fn resize_surface(data: &mut Win32UserData, window_width: i32, window_height: i32) {
-    data.bitmap_info.bmiHeader.biWidth = window_width / 2;
-    data.bitmap_info.bmiHeader.biHeight = -window_height / 2;
+    data.bitmap_info.bmiHeader.biWidth = window_width / 3;
+    data.bitmap_info.bmiHeader.biHeight = -window_height / 3;
 
     if !data.pixels.is_null() {
         VirtualFree(data.pixels as *mut c_void, 0, MEM_RELEASE);

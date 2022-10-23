@@ -1,4 +1,3 @@
-mod png;
 mod view;
 
 use std::time::Instant;

@@ -10,6 +10,8 @@ use cgmath::Vector3;
 
 use crate::utils::calculate_index;
 
+use self::virtual_window::VirtualWindow;
+
 pub trait B2DT: Deref<Target = [u8]> + DerefMut<Target = [u8]> {}
 impl<T> B2DT for T where T: Deref<Target = [u8]> + DerefMut<Target = [u8]> {}
 
@@ -19,13 +21,37 @@ pub type B2DS<'a> = B2D<&'a mut [u8]>;
 pub struct B2D<T: B2DT> {
     pub width: i32,
     pub height: i32,
-    pub colors: T,
+    pub pixels: T,
+}
+
+impl B2DO {
+    pub fn new(width: i32, height: i32) -> Self {
+        Self {
+            width: width,
+            height: height,
+            pixels: vec![0; (width * height * 4) as usize],
+        }
+    }
+
+    pub fn resize(&mut self, width: i32, height: i32) {
+        self.width = width;
+        self.height = height;
+        self.pixels.resize((width * height * 4) as usize, 0);
+    }
+
+    pub fn as_b2ds(&mut self) -> B2DS {
+        B2DS {
+            width: self.width,
+            height: self.height,
+            pixels: &mut self.pixels,
+        }
+    }
 }
 
 impl<T: B2DT> B2D<T> {
     pub fn get_color(&self, x: usize, y: usize) -> Vector3<u8> {
         let index = ((y * self.width as usize) + x) * 4;
-        let channels = &self.colors[index..index + 4];
+        let channels = &self.pixels[index..index + 4];
         Vector3 {
             x: channels[0],
             y: channels[1],
@@ -40,19 +66,15 @@ impl<T: B2DT> B2D<T> {
         self.get_color(x, y)
     }
 
-    pub fn clear(&mut self) {
-        self.colors.fill(0x00);
-    }
-
-    pub fn set_color_xy(&mut self, x: i32, y: i32, c: &Vector3<u8>) {
+    pub fn set_color(&mut self, x: i32, y: i32, c: &Vector3<u8>) {
         self.set_color_by_index(calculate_index(x, y, self.width) * 4, c);
     }
 
     pub fn set_color_by_index(&mut self, index: usize, c: &Vector3<u8>) {
-        self.colors[index] = c.x;
-        self.colors[index + 1] = c.y;
-        self.colors[index + 2] = c.z;
-        self.colors[index + 3] = u8::MAX;
+        self.pixels[index] = c.x;
+        self.pixels[index + 1] = c.y;
+        self.pixels[index + 2] = c.z;
+        self.pixels[index + 3] = u8::MAX;
     }
 
     pub fn draw_line_2d(&mut self, p0: Vector3<f32>, p1: Vector3<f32>, c: &Vector3<u8>) {
@@ -91,9 +113,9 @@ impl<T: B2DT> B2D<T> {
         for x in x0..x1 {
             z += dz;
             if steep {
-                self.set_color_xy(y, x, c);
+                self.set_color(y, x, c);
             } else {
-                self.set_color_xy(x, y, c);
+                self.set_color(x, y, c);
             }
 
             error += d_error;
@@ -104,55 +126,101 @@ impl<T: B2DT> B2D<T> {
         }
     }
 
-    pub fn blit_buffer<A: B2DT>(&mut self, buffer: &B2D<A>, offset_x: i32, offset_y: i32) {
-        self.blit(
-            &buffer.colors,
-            buffer.width as i32,
-            buffer.height as i32,
-            offset_x,
-            offset_y,
+    pub fn blit_buffer_full<A: B2DT>(&mut self, buffer: &B2D<A>, offset: (i32, i32)) {
+        self.blit_full(
+            &buffer.pixels,
+            (buffer.width as i32, buffer.height as i32),
+            offset,
         )
     }
 
-    pub fn blit(
+    pub fn blit_full(&mut self, source: &[u8], source_size: (i32, i32), offset: (i32, i32)) {
+        self.blit_region_copy(source, (0, 0), source_size, source_size.0, offset)
+    }
+
+    pub fn blit_region_copy(
         &mut self,
         source: &[u8],
+        source_offset: (i32, i32),
+        mut image_length: (i32, i32),
         source_width: i32,
-        source_height: i32,
-        offset_x: i32,
-        offset_y: i32,
+        offset: (i32, i32),
     ) {
-        let mut source_offset_x = 0;
-        if offset_x < 0 {
-            source_offset_x = offset_x.abs();
+        self.blit_region(
+            source,
+            source_offset,
+            image_length,
+            source_width,
+            offset,
+            |dest, source| {
+                dest.copy_from_slice(source);
+            },
+        )
+    }
+
+    pub fn blit_region_alpha(
+        &mut self,
+        source: &[u8],
+        source_offset: (i32, i32),
+        mut image_length: (i32, i32),
+        source_width: i32,
+        offset: (i32, i32),
+    ) {
+        self.blit_region(
+            source,
+            source_offset,
+            image_length,
+            source_width,
+            offset,
+            |dest, source| {
+                dest.iter_mut().zip(source).for_each(|(d, s)| *d = *d | *s);
+            },
+        )
+    }
+
+    pub fn blit_region(
+        &mut self,
+        source: &[u8],
+        source_offset: (i32, i32),
+        mut image_length: (i32, i32),
+        source_width: i32,
+        offset: (i32, i32),
+        method: fn(&mut [u8], &[u8]),
+    ) {
+        let mut source_offset_x = source_offset.0;
+        if offset.0 < 0 {
+            source_offset_x -= offset.0;
+            image_length.0 += offset.0;
         }
-        let mut image_length_x = source_width - source_offset_x;
-        image_length_x = image_length_x.min(self.width - offset_x);
-        if image_length_x <= 0 {
+        image_length.0 = image_length.0.min(self.width - offset.0);
+        if image_length.0 <= 0 {
             return;
         }
 
-        let mut source_offset_y = 0;
-        if offset_y < 0 {
-            source_offset_y = offset_y.abs();
+        let mut source_offset_y = source_offset.1;
+        if offset.1 < 0 {
+            source_offset_y -= offset.1;
+            image_length.1 += offset.1;
         }
-        let mut image_length_y = source_height - source_offset_y;
-        image_length_y = image_length_y.min(self.height - offset_y);
-        if image_length_y <= 0 {
+        image_length.1 = image_length.1.min(self.height - offset.1);
+        if image_length.1 <= 0 {
             return;
         }
 
-        let slice_length = image_length_x as usize * 4;
+        let slice_length = image_length.0 as usize * 4;
 
-        let dest_offset_x = offset_x.max(0);
-        let dest_offset_y = offset_y.max(0);
+        let dest_offset_x = offset.0.max(0);
+        let dest_offset_y = offset.1.max(0);
 
-        for y in 0..image_length_y {
+        for y in 0..image_length.1 {
             let dest_index = calculate_index(dest_offset_x, y + dest_offset_y, self.width) * 4;
             let source_index =
                 calculate_index(source_offset_x, y + source_offset_y, source_width) * 4;
-            self.colors[dest_index..dest_index + slice_length]
-                .copy_from_slice(&source[source_index..source_index + slice_length])
+
+            method(
+                &mut self.pixels[dest_index..dest_index + slice_length],
+                &source[source_index..source_index + slice_length],
+            );
         }
     }
 }

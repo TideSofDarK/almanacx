@@ -121,7 +121,7 @@ pub fn load_bmp(path: &str) -> io::Result<B2DO> {
     Ok(B2DO {
         width: header.width,
         height: header.height,
-        colors: color_buf,
+        pixels: color_buf,
     })
 }
 
