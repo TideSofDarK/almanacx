@@ -4,7 +4,7 @@ use std::{
     mem, slice,
 };
 
-use crate::buffer2d::B2DO;
+use crate::{buffer2d::B2DO, utils::color_from_tuple};
 
 const SIGNATURE: u16 = 19778;
 
@@ -46,62 +46,57 @@ pub fn load_bmp(path: &str) -> io::Result<B2DO> {
     if header.signature != SIGNATURE {
         return Err(std::io::Error::new(
             ErrorKind::InvalidData,
-            "BMP signature didn't match!",
+            "[BMP] Signature didn't match!",
         ));
     }
 
     if header.bits_per_pixel != 24 && header.bits_per_pixel != 32 {
         return Err(std::io::Error::new(
             ErrorKind::InvalidData,
-            "Unsupported BMP bit depth!",
+            "[BMP] Unsupported bit depth!",
         ));
     }
 
     if header.compression != 0 && header.compression != 3 {
         return Err(std::io::Error::new(
             ErrorKind::InvalidData,
-            format!("BMP compression mode {:?} is not supported!", {
+            format!("[BMP] Compression mode {:?} is not supported!", {
                 header.compression
             }),
         ));
     }
 
-    let bytes_per_pixel = (header.bits_per_pixel / 8) as usize;
+    let bytes_per_pixel = (header.bits_per_pixel / u8::BITS as u16) as usize;
 
     let mut color_buf = vec![0; (header.width * header.height) as usize * bytes_per_pixel];
     f.seek(SeekFrom::Start(header.offset as u64))?;
     f.read_exact(color_buf.as_mut_slice())?;
 
-    if header.compression == 0 && header.bits_per_pixel == 24 {
-        color_buf = Vec::from_iter(
-            color_buf
-                .chunks_exact_mut(bytes_per_pixel)
-                .map(|c| {
-                    let mut n = c.to_owned();
-                    // n.reverse();
-                    n.push(255);
-                    n
-                })
-                .flatten(),
-        );
+    let pixels = if header.compression == 0 && header.bits_per_pixel == 24 {
+        if header.width != header.height
+            || !((header.width & (header.width - 1)) != 0)
+            || !((header.height & (header.height - 1)) != 0)
+        {
+            panic!("[BMP] Width and/or height are not power of two!");
+        }
 
-        // // un-mirror X
-        // color_buf = Vec::from_iter(
-        //     color_buf
-        //         .chunks(4 * header.width as usize)
-        //         .flat_map(|row| row.rchunks(4).flatten())
-        //         .cloned(),
-        // );
+        Vec::from_iter(color_buf.chunks_exact_mut(bytes_per_pixel).map(|c| {
+            color_from_tuple((
+                (c[2] as f32 / 256.0 * 32.0).round() as u16,
+                (c[1] as f32 / 256.0 * 32.0).round() as u16,
+                (c[0] as f32 / 256.0 * 32.0).round() as u16,
+            ))
+        }))
     } else if header.compression == 3 && header.bits_per_pixel == 32 {
-        let red_mask = header.red_mask;
-        let green_mask = header.green_mask;
-        let blue_mask = header.blue_mask;
-        let alpha_mask = header.alpha_mask;
+        // let red_mask = header.red_mask;
+        // let green_mask = header.green_mask;
+        // let blue_mask = header.blue_mask;
+        // let alpha_mask = header.alpha_mask;
 
-        let red_shift = red_mask.trailing_zeros();
-        let green_shift = green_mask.trailing_zeros();
-        let blue_shift = blue_mask.trailing_zeros();
-        let alpha_shift = alpha_mask.trailing_zeros();
+        // let red_shift = red_mask.trailing_zeros();
+        // let green_shift = green_mask.trailing_zeros();
+        // let blue_shift = blue_mask.trailing_zeros();
+        // let alpha_shift = alpha_mask.trailing_zeros();
 
         // color_buf
         //     .chunks_exact_mut(bytes_per_pixel)
@@ -116,12 +111,22 @@ pub fn load_bmp(path: &str) -> io::Result<B2DO> {
                 .flatten()
                 .cloned(),
         );
-    }
+
+        Vec::from_iter(color_buf.chunks_exact_mut(4).map(|c| {
+            color_from_tuple((
+                (c[2] as f32 / 256.0 * 32.0) as u16,
+                (c[1] as f32 / 256.0 * 32.0) as u16,
+                (c[0] as f32 / 256.0 * 32.0) as u16,
+            ))
+        }))
+    } else {
+        panic!("[BMP] Wrong combination of compression and bit depth!");
+    };
 
     Ok(B2DO {
         width: header.width,
         height: header.height,
-        pixels: color_buf,
+        pixels,
     })
 }
 

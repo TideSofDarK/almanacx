@@ -30,19 +30,3 @@ pub fn create_virtual_windows() -> Vec<VirtualWindow> {
     }
     virtual_windows
 }
-
-// pub fn create_buffers() -> Vec<B2DO> {
-//     let mut buffers = vec![];
-//     for i in 0..VW_MAX {
-//         virtual_windows.push(match i {
-//             VW_PRIMARY => VirtualWindow {
-//                 x: ((REFERENCE_WIDTH - PRIMARY_WIDTH) / 2) as i32,
-//                 y: ((REFERENCE_HEIGHT - PRIMARY_HEIGHT) / 2) as i32,
-//                 z: 0,
-//                 minimized: false,
-//             },
-//             _ => VirtualWindow::default(),
-//         });
-//     }
-//     virtual_windows
-// }

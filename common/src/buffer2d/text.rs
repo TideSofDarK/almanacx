@@ -29,10 +29,10 @@ pub fn blit_str<T: B2DT>(dest: &mut B2D<T>, s: &str, x: i32, y: i32, font: &Font
                         char_x_offset as usize + char_x as usize,
                         char_y_offset as usize + char_y as usize,
                     );
-                    if color.x == 0 && color.y == 0 && color.z == 0 {
+                    if color == 0 {
                         continue;
                     }
-                    dest.set_color(char_x + (i * font.char_size) + x, char_y + y, &color);
+                    dest.set_color(char_x + (i * font.char_size) + x, char_y + y, color);
                 }
             }
         }

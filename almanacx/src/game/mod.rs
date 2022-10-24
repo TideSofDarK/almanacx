@@ -7,13 +7,15 @@ use cgmath::{Vector3, Zero};
 use common::{
     buffer2d::{
         text::{blit_str, Font},
-        virtual_window::VirtualWindow,
+        virtual_window::{VirtualWindow, WindowBorder},
         B2DO, B2DS,
     },
     image::bmp,
-    platform::{input::Input, Application},
+    platform::{
+        input::{Input, InputCode},
+        Application,
+    },
     renderer::{camera::Camera, utils::draw_grid, Renderer},
-    vk,
 };
 
 use self::{
@@ -36,7 +38,7 @@ pub struct Game {
     pub player: Player,
     pub world: World,
     pub texture: B2DO,
-    pub border: B2DO,
+    pub border: WindowBorder,
     pub font: Font,
     pub x: i32,
     pub y: i32,
@@ -60,7 +62,7 @@ impl Game {
             player: Player::new(),
             world: World::new(),
             texture: bmp::load_bmp("./assets/floor.bmp").expect("no such bmp file"),
-            border: load_border_texture(),
+            border: WindowBorder::new(load_border_texture()),
             font: Font {
                 bitmap: bmp::load_bmp("./assets/conchars.bmp").expect("no such bmp file"),
                 char_size: 8,
@@ -78,31 +80,31 @@ impl Application for Game {
         "Almanac X"
     }
 
-    fn main_loop(&mut self, input: &Input, dt: f32, main_buffer: Option<&mut B2DS>) -> bool {
-        if input.is_pressed(27) {
+    fn main_loop(&mut self, input: &Input, dt: f32, main_buffer: Option<B2DS>) -> bool {
+        if input.is_pressed(InputCode::Escape) {
             return false;
         }
 
         self.player.handle_input(
-            input.is_held(vk!('W')),
-            input.is_held(vk!('S')),
-            input.is_held(vk!('A')),
-            input.is_held(vk!('D')),
-            input.is_held(0x25),
-            input.is_held(0x27),
-            input.is_held(16),
+            input.is_held(InputCode::W),
+            input.is_held(InputCode::S),
+            input.is_held(InputCode::A),
+            input.is_held(InputCode::D),
+            input.is_held(InputCode::Left),
+            input.is_held(InputCode::Right),
+            input.is_held(InputCode::Shift),
         );
 
-        if input.is_held(vk!('W')) {
+        if input.is_held(InputCode::W) {
             self.y -= 3;
         }
-        if input.is_held(vk!('S')) {
+        if input.is_held(InputCode::S) {
             self.y += 3;
         }
-        if input.is_held(vk!('A')) {
+        if input.is_held(InputCode::A) {
             self.x -= 3;
         }
-        if input.is_held(vk!('D')) {
+        if input.is_held(InputCode::D) {
             self.x += 3;
         }
 
@@ -121,13 +123,19 @@ impl Application for Game {
         // //     self.texture = self.renderer.take_texture();
         // // }
 
-        if input.is_pressed(vk!('T')) {
+        if input.is_pressed(InputCode::F12) {
             println!("{:?}", self.renderer.tris_count);
+        }
+
+        if input.is_pressed(InputCode::Grave) {
+            println!("{:?}", dt);
         }
 
         self.player.update(dt);
 
-        if let Some(buffer) = main_buffer {
+        if let Some(mut main_buffer) = main_buffer {
+            main_buffer.pixels.fill(0);
+
             self.renderer.begin(self.camera.proj * self.player.view);
 
             draw_grid(&mut self.renderer, Vector3::<f32>::zero(), 0.5);
@@ -143,51 +151,51 @@ impl Application for Game {
 
             // buffer.blit_buffer(&self.renderer.color_buffer, 0, 0);
 
-            self.virtual_windows[VW_PRIMARY].blit_with_border(buffer, &self.border);
+            self.virtual_windows[VW_PRIMARY].blit_with_border(&mut main_buffer, &self.border);
 
-            blit_str(
-                &mut self.virtual_windows[VW_TEST_A].buffer.borrow_mut(),
-                "!@#$%^&s*()_+",
-                12,
-                12,
-                &self.font,
-            );
+            if input.is_held(InputCode::LMB) {
+                blit_str(
+                    &mut self.virtual_windows[VW_TEST_A].buffer.borrow_mut(),
+                    "!@#$%^&s*()_+",
+                    12,
+                    12,
+                    &self.font,
+                );
 
-            blit_str(
-                &mut self.virtual_windows[VW_TEST_A].buffer.borrow_mut(),
-                "1234567890-=",
-                12,
-                12 + 8,
-                &self.font,
-            );
+                blit_str(
+                    &mut self.virtual_windows[VW_TEST_A].buffer.borrow_mut(),
+                    "1234567890-=",
+                    12,
+                    12 + 8,
+                    &self.font,
+                );
 
-            blit_str(
-                &mut self.virtual_windows[VW_TEST_A].buffer.borrow_mut(),
-                "AaBbCcDdEeFfGgHhIiJjKk",
-                12,
-                12 + 16,
-                &self.font,
-            );
+                blit_str(
+                    &mut self.virtual_windows[VW_TEST_A].buffer.borrow_mut(),
+                    "AaBbCcDdEeFfGgHhIiJjKk",
+                    12,
+                    12 + 16,
+                    &self.font,
+                );
 
-            blit_str(
-                &mut self.virtual_windows[VW_TEST_A].buffer.borrow_mut(),
-                "LlMmNnOoPpQqRrSsTtUuVv",
-                12,
-                12 + 24,
-                &self.font,
-            );
+                blit_str(
+                    &mut self.virtual_windows[VW_TEST_A].buffer.borrow_mut(),
+                    "LlMmNnOoPpQqRrSsTtUuVv",
+                    12,
+                    12 + 24,
+                    &self.font,
+                );
 
-            blit_str(
-                &mut self.virtual_windows[VW_TEST_A].buffer.borrow_mut(),
-                "WwXxYyZz",
-                12,
-                12 + 24,
-                &self.font,
-            );
+                blit_str(
+                    &mut self.virtual_windows[VW_TEST_A].buffer.borrow_mut(),
+                    "WwXxYyZz",
+                    12,
+                    12 + 32,
+                    &self.font,
+                );
 
-            self.virtual_windows[VW_TEST_A].blit_with_border(buffer, &self.border);
-
-            // buffer.blit_buffer(&self.font.bitmap, self.x, self.y);
+                self.virtual_windows[VW_TEST_A].blit_with_border(&mut main_buffer, &self.border);
+            }
         }
 
         return true;

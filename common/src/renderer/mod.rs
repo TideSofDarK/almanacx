@@ -14,7 +14,7 @@ use cgmath::{
 use crate::{
     buffer2d::{B2D, B2DO, B2DT},
     math::{max3, min3, orient2d},
-    utils::calculate_index,
+    utils::{calculate_index, color_from_vec},
 };
 
 use self::clipping::{clip_line_to_frustum, clip_triangle_to_frustum};
@@ -58,7 +58,7 @@ impl Renderer {
 
     pub fn begin(&mut self, mat: Matrix4<f32>) {
         self.view_proj_mat = mat;
-        self.color_buffer.borrow_mut().pixels.fill(20);
+        self.color_buffer.borrow_mut().pixels.fill(7500);
         self.z_buffer.fill(f32::MAX);
         self.tris_count = 0;
     }
@@ -99,15 +99,11 @@ impl Renderer {
         self.color_buffer.borrow_mut().set_color(
             v.pos.x as i32,
             v.pos.y as i32,
-            &Vector3::new(
-                (v.color.x * 255.0) as u8,
-                (v.color.y * 255.0) as u8,
-                (v.color.z * 255.0) as u8,
-            ),
+            color_from_vec(v.color),
         )
     }
 
-    pub fn draw_line(&mut self, mut p0: Vector4<f32>, mut p1: Vector4<f32>, c: Vector3<u8>) {
+    pub fn draw_line(&mut self, mut p0: Vector4<f32>, mut p1: Vector4<f32>, c: u16) {
         p0 = self.view_proj_mat * p0;
         p1 = self.view_proj_mat * p1;
 
@@ -120,7 +116,7 @@ impl Renderer {
 
             self.color_buffer
                 .borrow_mut()
-                .draw_line_2d(p0.truncate(), p1.truncate(), &c);
+                .draw_line_2d(p0.truncate(), p1.truncate(), c);
         }
     }
 
@@ -209,15 +205,16 @@ impl Renderer {
                                 ) * bc_clip;
                                 texture.sample(uv.x, uv.y)
                             }
-                            None => (Matrix3::from_cols(
-                                vertices[0].color,
-                                vertices[1].color,
-                                vertices[2].color,
-                            ) * bc_clip)
-                                .map(|c| ((c * 255.0) as u8)),
+                            None => color_from_vec(
+                                (Matrix3::from_cols(
+                                    vertices[0].color,
+                                    vertices[1].color,
+                                    vertices[2].color,
+                                ) * bc_clip),
+                            ),
                         };
 
-                        color_buffer.set_color_by_index(index * 4, &color);
+                        color_buffer.set_color_by_index(index, color);
                     }
                 }
 

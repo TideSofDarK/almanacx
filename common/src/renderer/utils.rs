@@ -1,11 +1,11 @@
 use cgmath::Vector3;
 
-use crate::buffer2d::B2DT;
+use crate::{buffer2d::B2DT, utils::color_from_tuple};
 
 use super::Renderer;
 
 const GRID_SIZE: i32 = 12;
-const GRID_COLOR: Vector3<u8> = Vector3::new(255, 255, 255);
+const GRID_COLOR: u16 = color_from_tuple((31, 31, 31));
 
 pub fn draw_grid(renderer: &mut Renderer, origin_reference: Vector3<f32>, cell_size: f32) {
     for i in -GRID_SIZE..GRID_SIZE {

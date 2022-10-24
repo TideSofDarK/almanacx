@@ -1,3 +1,5 @@
+use cgmath::Vector3;
+
 pub fn read_u8(buf: &[u8], offset: usize) -> u8 {
     u8::from_le_bytes(
         buf[offset..offset + 1]
@@ -52,4 +54,12 @@ pub fn read_str_8bytes(buf: &[u8], offset: usize) -> String {
 
 pub fn calculate_index(x: i32, y: i32, width: i32) -> usize {
     (y * width + x) as usize
+}
+
+pub fn color_from_vec(color: Vector3<f32>) -> u16 {
+    ((color.x * 32.0) as u16) << 10 + ((color.x * 64.0) as u16) << 5 + ((color.x * 32.0) as u16)
+}
+
+pub const fn color_from_tuple(color: (u16, u16, u16)) -> u16 {
+    (color.0 << 10) + (color.1 << 5) + color.2
 }

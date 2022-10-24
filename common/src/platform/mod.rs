@@ -10,7 +10,7 @@ mod platform_implementation;
 
 pub trait Application {
     fn get_title(&self) -> &'static str;
-    fn main_loop(&mut self, input: &Input, dt: f32, buffer: Option<&mut B2DS>) -> bool;
+    fn main_loop(&mut self, input: &Input, dt: f32, buffer: Option<B2DS>) -> bool;
 }
 
 pub fn init_application<A: Application>(app: A) {

@@ -17,7 +17,7 @@ impl Application for Quill {
         "Quill"
     }
 
-    fn main_loop(&mut self, input: &Input, dt: f32, buffer: Option<&mut B2DS>) -> bool {
+    fn main_loop(&mut self, input: &Input, dt: f32, buffer: Option<B2DS>) -> bool {
         todo!()
     }
 }
