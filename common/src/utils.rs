@@ -52,6 +52,12 @@ pub fn read_str_8bytes(buf: &[u8], offset: usize) -> String {
     .replace('\0', "")
 }
 
+// Rect is (x, y, width, height)
+pub const fn is_inside(point: (i32, i32), rect: (i32, i32, i32, i32)) -> bool {
+    point.0 >= rect.0 && point.0 <= rect.0 + rect.2
+        && point.1 >= rect.1 && point.1 <= rect.1 + rect.3
+}
+
 pub fn calculate_index(x: i32, y: i32, width: i32) -> usize {
     (y * width + x) as usize
 }

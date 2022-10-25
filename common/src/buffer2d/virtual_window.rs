@@ -1,7 +1,10 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::platform::input::Input;
+use crate::{
+    platform::input::{Input, InputCode},
+    utils::is_inside,
+};
 
 use super::{B2D, B2DO, B2DS, B2DT};
 
@@ -27,19 +30,33 @@ pub struct VirtualWindow {
     pub x: i32,
     pub y: i32,
     pub z: i32,
+    pub dragable: bool,
     pub minimized: bool,
     pub buffer: Rc<RefCell<B2DO>>,
 }
 
 impl VirtualWindow {
-    pub fn new(x: i32, y: i32, z: i32, width: i32, height: i32) -> Self {
+    pub fn new(width: i32, height: i32) -> Self {
         Self {
-            x,
-            y,
-            z,
+            x: 0,
+            y: 0,
+            z: 0,
+            dragable: true,
             minimized: false,
             buffer: Rc::new(RefCell::new(B2DO::new(width, height))),
         }
+    }
+
+    pub fn with_xyz(mut self, x: i32, y: i32, z: i32) -> Self {
+        self.x = x;
+        self.y = y;
+        self.z = z;
+        self
+    }
+
+    pub fn with_dragable(mut self, dragable: bool) -> Self {
+        self.dragable = dragable;
+        self
     }
 
     pub fn blit_with_border<T: B2DT>(&mut self, dest: &mut B2D<T>, border: &WindowBorder) {
@@ -139,24 +156,12 @@ impl VirtualWindow {
     }
 }
 
-impl Default for VirtualWindow {
-    fn default() -> Self {
-        Self {
-            x: Default::default(),
-            y: Default::default(),
-            z: Default::default(),
-            minimized: Default::default(),
-            buffer: Rc::new(RefCell::new(B2DO::new(
-                Default::default(),
-                Default::default(),
-            ))),
-        }
-    }
-}
-
 pub struct VirtualWindowStack {
     pub windows: Vec<VirtualWindow>,
     sorted_indices: Vec<(usize, i32)>,
+    active_window: usize,
+    is_dragging: bool,
+    drag_offset: (i32, i32)
 }
 
 impl VirtualWindowStack {
@@ -165,24 +170,69 @@ impl VirtualWindowStack {
         Self {
             windows: virtual_windows,
             sorted_indices: vec![(0, 0); len],
+            active_window: 0,
+            is_dragging: true,
+            drag_offset: (0, 0)
         }
     }
 
     pub fn update(&mut self, input: &Input) {
+        if self.is_dragging {
+            if input.is_released(InputCode::LMB) || !input.is_held(InputCode::LMB) {
+                self.is_dragging = false;
+            } else {
+                let window = &mut self.windows[self.active_window];
+
+                window.x = self.drag_offset.0 + input.mouse_x;
+                window.y = self.drag_offset.1 + input.mouse_y;
+            }
+        } else {
+if input.is_pressed(InputCode::LMB) {
+    self.click_test((input.mouse_x, input.mouse_y));
+}
+        self.sort();
+        }
+
+
         // self.windows.sort_by(|a, b| a.z.cmp(&b.z));
     }
 
     pub fn blit(&mut self, border: &WindowBorder, buffer: &mut B2DS) {
-        self.windows
-            .iter()
-            .enumerate()
-            .for_each(|(i, w)| self.sorted_indices[i] = (i, w.z));
-        self.sorted_indices.sort_by(|a, b| a.1.cmp(&b.1));
         self.sorted_indices.iter().for_each(|(i, _)| {
             let window = &mut self.windows[*i];
             if !window.minimized {
                 window.blit_with_border(buffer, border)
             }
         });
+    }
+
+    pub fn get_top_window(&mut self) -> usize {
+        self.sorted_indices[0].0
+    }
+
+    fn click_test(&mut self, pos: (i32, i32)) -> Option<usize> {
+        let mut max_z = 0;
+        for (i, _) in self.sorted_indices.iter().rev() {
+            let index = *i;
+            let window = &mut self.windows[index];
+            max_z = window.z.max(max_z);
+            let buffer = window.buffer.borrow();
+            if is_inside(pos, (window.x, window.y, buffer.width, buffer.height)) {
+                window.z = max_z + 1;
+                self.is_dragging = true;
+                self.drag_offset = (window.x - pos.0, window.y - pos.1);
+                self.active_window = index;
+                return Some(index);
+            }
+        }
+        return None;
+    }
+
+    fn sort(&mut self) {
+        self.windows
+            .iter()
+            .enumerate()
+            .for_each(|(i, w)| self.sorted_indices[i] = (i, w.z));
+        self.sorted_indices.sort_by(|a, b| a.1.cmp(&b.1));
     }
 }

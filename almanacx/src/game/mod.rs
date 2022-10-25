@@ -135,7 +135,7 @@ impl Application for Game {
         self.player.update(dt);
 
         let test_a = &mut self.stack.windows[VW_TEST_A];
-        test_a.minimized = !input.is_held(InputCode::LMB);
+        // test_a.minimized = !input.is_held(InputCode::LMB);
 
         if let Some(mut main_buffer) = main_buffer {
             main_buffer.pixels.fill(0);

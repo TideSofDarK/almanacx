@@ -5,7 +5,7 @@ use common::{
 
 use super::definitions::{
     PRIMARY_HEIGHT, PRIMARY_WIDTH, REFERENCE_HEIGHT, REFERENCE_WIDTH, TEST_A_HEIGHT, TEST_A_WIDTH,
-    VW_MAX, VW_TEST_A,
+    VW_MAX,
 };
 
 pub fn load_border_texture() -> B2DO {
@@ -17,16 +17,19 @@ pub fn create_virtual_windows() -> Vec<VirtualWindow> {
     for i in 0..VW_MAX {
         virtual_windows.push(match i {
             super::definitions::VW_PRIMARY => VirtualWindow::new(
-                ((REFERENCE_WIDTH - PRIMARY_WIDTH) / 2) as i32,
-                ((REFERENCE_HEIGHT - PRIMARY_HEIGHT) / 2) as i32,
-                0,
+
                 PRIMARY_WIDTH,
                 PRIMARY_HEIGHT,
-            ),
+            ).with_xyz(((REFERENCE_WIDTH - PRIMARY_WIDTH) / 2) as i32,
+                ((REFERENCE_HEIGHT - PRIMARY_HEIGHT) / 2) as i32,
+                0),
             super::definitions::VW_TEST_A => {
-                VirtualWindow::new(64, 32, 1, TEST_A_WIDTH, TEST_A_HEIGHT)
+                VirtualWindow::new( TEST_A_WIDTH, TEST_A_HEIGHT).with_xyz(64, 32, 1)
             }
-            _ => VirtualWindow::default(),
+            super::definitions::VW_TEST_B => {
+                VirtualWindow::new( TEST_A_WIDTH, TEST_A_HEIGHT).with_xyz(200, 40, 2)
+            }
+            _ => unreachable!(),
         });
     }
     virtual_windows

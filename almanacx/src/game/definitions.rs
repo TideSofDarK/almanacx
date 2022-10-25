@@ -1,6 +1,6 @@
 pub const VW_PRIMARY: usize = 0;
 pub const VW_TEST_A: usize = 1;
-pub const VW_POPUP: usize = 2;
+pub const VW_TEST_B: usize = 2;
 pub const VW_MAX: usize = 3;
 
 pub const REFERENCE_WIDTH: i32 = 1920 / 3;
