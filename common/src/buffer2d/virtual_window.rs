@@ -161,7 +161,7 @@ pub struct VirtualWindowStack {
     sorted_indices: Vec<(usize, i32)>,
     active_window: usize,
     is_dragging: bool,
-    drag_offset: (i32, i32)
+    drag_offset: (i32, i32),
 }
 
 impl VirtualWindowStack {
@@ -172,7 +172,7 @@ impl VirtualWindowStack {
             sorted_indices: vec![(0, 0); len],
             active_window: 0,
             is_dragging: true,
-            drag_offset: (0, 0)
+            drag_offset: (0, 0),
         }
     }
 
@@ -187,21 +187,18 @@ impl VirtualWindowStack {
                 window.y = self.drag_offset.1 + input.mouse_y;
             }
         } else {
-if input.is_pressed(InputCode::LMB) {
-    self.click_test((input.mouse_x, input.mouse_y));
-}
-        self.sort();
+            if input.is_pressed(InputCode::LMB) {
+                self.click_test((input.mouse_x, input.mouse_y));
+            }
+            self.sort();
         }
-
-
-        // self.windows.sort_by(|a, b| a.z.cmp(&b.z));
     }
 
     pub fn blit(&mut self, border: &WindowBorder, buffer: &mut B2DS) {
         self.sorted_indices.iter().for_each(|(i, _)| {
             let window = &mut self.windows[*i];
             if !window.minimized {
-                window.blit_with_border(buffer, border)
+                window.blit_with_border(buffer, border);
             }
         });
     }
