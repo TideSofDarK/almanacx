@@ -1,6 +1,9 @@
-use std::{cell::RefCell, rc::Rc};
+use std::cell::RefCell;
+use std::rc::Rc;
 
-use super::{B2D, B2DO, B2DT};
+use crate::platform::input::Input;
+
+use super::{B2D, B2DO, B2DS, B2DT};
 
 pub struct WindowBorder {
     pub padding: i32,
@@ -29,11 +32,11 @@ pub struct VirtualWindow {
 }
 
 impl VirtualWindow {
-    pub fn new(x: i32, y: i32, width: i32, height: i32) -> Self {
+    pub fn new(x: i32, y: i32, z: i32, width: i32, height: i32) -> Self {
         Self {
-            x: x,
-            y: y,
-            z: 0,
+            x,
+            y,
+            z,
             minimized: false,
             buffer: Rc::new(RefCell::new(B2DO::new(width, height))),
         }
@@ -148,5 +151,38 @@ impl Default for VirtualWindow {
                 Default::default(),
             ))),
         }
+    }
+}
+
+pub struct VirtualWindowStack {
+    pub windows: Vec<VirtualWindow>,
+    sorted_indices: Vec<(usize, i32)>,
+}
+
+impl VirtualWindowStack {
+    pub fn new(virtual_windows: Vec<VirtualWindow>) -> Self {
+        let len = virtual_windows.len();
+        Self {
+            windows: virtual_windows,
+            sorted_indices: vec![(0, 0); len],
+        }
+    }
+
+    pub fn update(&mut self, input: &Input) {
+        // self.windows.sort_by(|a, b| a.z.cmp(&b.z));
+    }
+
+    pub fn blit(&mut self, border: &WindowBorder, buffer: &mut B2DS) {
+        self.windows
+            .iter()
+            .enumerate()
+            .for_each(|(i, w)| self.sorted_indices[i] = (i, w.z));
+        self.sorted_indices.sort_by(|a, b| a.1.cmp(&b.1));
+        self.sorted_indices.iter().for_each(|(i, _)| {
+            let window = &mut self.windows[*i];
+            if !window.minimized {
+                window.blit_with_border(buffer, border)
+            }
+        });
     }
 }

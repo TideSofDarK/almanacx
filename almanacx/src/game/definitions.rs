@@ -1,5 +1,3 @@
-use common::buffer2d::virtual_window::VirtualWindow;
-
 pub const VW_PRIMARY: usize = 0;
 pub const VW_TEST_A: usize = 1;
 pub const VW_POPUP: usize = 2;

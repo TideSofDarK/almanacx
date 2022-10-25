@@ -7,7 +7,7 @@ use cgmath::{Vector3, Zero};
 use common::{
     buffer2d::{
         text::{blit_str, Font},
-        virtual_window::{VirtualWindow, WindowBorder},
+        virtual_window::{VirtualWindow, VirtualWindowStack, WindowBorder},
         B2DO, B2DS,
     },
     image::bmp,
@@ -31,7 +31,7 @@ pub enum GameState {
 }
 
 pub struct Game {
-    pub virtual_windows: Vec<VirtualWindow>,
+    pub stack: VirtualWindowStack,
     pub game_state: GameState,
     pub renderer: Renderer,
     pub camera: Camera,
@@ -50,7 +50,7 @@ impl Game {
         let renderer = Renderer::new(&virtual_windows[VW_PRIMARY].buffer);
 
         Self {
-            virtual_windows: virtual_windows,
+            stack: VirtualWindowStack::new(virtual_windows),
             game_state: GameState::Action,
             renderer: renderer,
             camera: Camera::perspective(
@@ -131,7 +131,11 @@ impl Application for Game {
             println!("{:?}", dt);
         }
 
+        self.stack.update(&input);
         self.player.update(dt);
+
+        let test_a = &mut self.stack.windows[VW_TEST_A];
+        test_a.minimized = !input.is_held(InputCode::LMB);
 
         if let Some(mut main_buffer) = main_buffer {
             main_buffer.pixels.fill(0);
@@ -151,27 +155,15 @@ impl Application for Game {
 
             // buffer.blit_buffer(&self.renderer.color_buffer, 0, 0);
 
-            self.virtual_windows[VW_PRIMARY].blit_with_border(&mut main_buffer, &self.border);
+            if !test_a.minimized {
+                let mut test_a_buffer = test_a.buffer.borrow_mut();
 
-            if input.is_held(InputCode::LMB) {
-                blit_str(
-                    &mut self.virtual_windows[VW_TEST_A].buffer.borrow_mut(),
-                    "!@#$%^&s*()_+",
-                    12,
-                    12,
-                    &self.font,
-                );
+                blit_str(&mut test_a_buffer, "!@#$%^&s*()_+", 12, 12, &self.font);
+
+                blit_str(&mut test_a_buffer, "1234567890-=", 12, 12 + 8, &self.font);
 
                 blit_str(
-                    &mut self.virtual_windows[VW_TEST_A].buffer.borrow_mut(),
-                    "1234567890-=",
-                    12,
-                    12 + 8,
-                    &self.font,
-                );
-
-                blit_str(
-                    &mut self.virtual_windows[VW_TEST_A].buffer.borrow_mut(),
+                    &mut test_a_buffer,
                     "AaBbCcDdEeFfGgHhIiJjKk",
                     12,
                     12 + 16,
@@ -179,23 +171,17 @@ impl Application for Game {
                 );
 
                 blit_str(
-                    &mut self.virtual_windows[VW_TEST_A].buffer.borrow_mut(),
+                    &mut test_a_buffer,
                     "LlMmNnOoPpQqRrSsTtUuVv",
                     12,
                     12 + 24,
                     &self.font,
                 );
 
-                blit_str(
-                    &mut self.virtual_windows[VW_TEST_A].buffer.borrow_mut(),
-                    "WwXxYyZz",
-                    12,
-                    12 + 32,
-                    &self.font,
-                );
-
-                self.virtual_windows[VW_TEST_A].blit_with_border(&mut main_buffer, &self.border);
+                blit_str(&mut test_a_buffer, "WwXxYyZz", 12, 12 + 32, &self.font);
             }
+
+            self.stack.blit(&self.border, &mut main_buffer);
         }
 
         return true;

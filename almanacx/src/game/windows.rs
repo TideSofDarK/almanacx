@@ -19,11 +19,12 @@ pub fn create_virtual_windows() -> Vec<VirtualWindow> {
             super::definitions::VW_PRIMARY => VirtualWindow::new(
                 ((REFERENCE_WIDTH - PRIMARY_WIDTH) / 2) as i32,
                 ((REFERENCE_HEIGHT - PRIMARY_HEIGHT) / 2) as i32,
+                0,
                 PRIMARY_WIDTH,
                 PRIMARY_HEIGHT,
             ),
             super::definitions::VW_TEST_A => {
-                VirtualWindow::new(64, 32, TEST_A_WIDTH, TEST_A_HEIGHT)
+                VirtualWindow::new(64, 32, 1, TEST_A_WIDTH, TEST_A_HEIGHT)
             }
             _ => VirtualWindow::default(),
         });
