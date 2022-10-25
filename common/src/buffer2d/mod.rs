@@ -117,6 +117,23 @@ impl<T: B2DT> B2D<T> {
         }
     }
 
+    pub fn blit_fill(&mut self, mut offset: (i32, i32), mut size: (i32, i32), color: u16) {
+        offset = (
+            offset.0.clamp(0, self.width),
+            offset.1.clamp(0, self.height),
+        );
+        size = (
+            size.0.clamp(0, size.0.min(self.width - offset.0)),
+            size.1.clamp(0, size.1.min(self.height - offset.1)),
+        );
+
+        for y in offset.1..offset.1 + size.1 {
+            let index = calculate_index(offset.0, y, self.width) as usize;
+            // self.pixels[index..index + size.0 as usize].fill(color);
+            self.pixels[index..index + size.0 as usize].iter_mut().for_each(|dest| *dest = *dest & color);
+        }
+    }
+
     pub fn blit_buffer_full<A: B2DT>(&mut self, buffer: &B2D<A>, offset: (i32, i32)) {
         self.blit_full(
             &buffer.pixels,

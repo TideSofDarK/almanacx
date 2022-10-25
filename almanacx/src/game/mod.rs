@@ -10,6 +10,7 @@ use common::{
         virtual_window::{VirtualWindow, VirtualWindowStack, WindowBorder},
         B2DO, B2DS,
     },
+    console::Console,
     image::bmp,
     platform::{
         input::{Input, InputCode},
@@ -19,7 +20,7 @@ use common::{
 };
 
 use self::{
-    definitions::{PRIMARY_HEIGHT, PRIMARY_WIDTH, VW_PRIMARY, VW_TEST_A},
+    definitions::{PRIMARY_HEIGHT, PRIMARY_WIDTH, VW_PRIMARY, VW_TEST_A, REFERENCE_WIDTH},
     player::Player,
     windows::{create_virtual_windows, load_border_texture},
     world::World,
@@ -31,6 +32,7 @@ pub enum GameState {
 }
 
 pub struct Game {
+    pub console: Console,
     pub stack: VirtualWindowStack,
     pub game_state: GameState,
     pub renderer: Renderer,
@@ -50,6 +52,7 @@ impl Game {
         let renderer = Renderer::new(&virtual_windows[VW_PRIMARY].buffer);
 
         Self {
+            console: Console::new(REFERENCE_WIDTH / 3),
             stack: VirtualWindowStack::new(virtual_windows),
             game_state: GameState::Action,
             renderer: renderer,
@@ -131,8 +134,10 @@ impl Application for Game {
             println!("{:?}", dt);
         }
 
-        self.stack.update(&input);
-        self.player.update(dt);
+        if !self.console.update(dt, &input) {
+            self.stack.update(&input);
+            self.player.update(dt);
+        }
 
         let test_a = &mut self.stack.windows[VW_TEST_A];
         // test_a.minimized = !input.is_held(InputCode::LMB);
@@ -182,6 +187,7 @@ impl Application for Game {
             }
 
             self.stack.blit(&self.border, &mut main_buffer);
+            self.console.blit(&mut main_buffer);
         }
 
         return true;

@@ -16,18 +16,17 @@ pub fn create_virtual_windows() -> Vec<VirtualWindow> {
     let mut virtual_windows = vec![];
     for i in 0..VW_MAX {
         virtual_windows.push(match i {
-            super::definitions::VW_PRIMARY => VirtualWindow::new(
-
-                PRIMARY_WIDTH,
-                PRIMARY_HEIGHT,
-            ).with_xyz(((REFERENCE_WIDTH - PRIMARY_WIDTH) / 2) as i32,
-                ((REFERENCE_HEIGHT - PRIMARY_HEIGHT) / 2) as i32,
-                0),
+            super::definitions::VW_PRIMARY => VirtualWindow::new(PRIMARY_WIDTH, PRIMARY_HEIGHT)
+                .with_xyz(
+                    ((REFERENCE_WIDTH - PRIMARY_WIDTH) / 2) as i32,
+                    ((REFERENCE_HEIGHT - PRIMARY_HEIGHT) / 2) as i32,
+                    0,
+                ),
             super::definitions::VW_TEST_A => {
-                VirtualWindow::new( TEST_A_WIDTH, TEST_A_HEIGHT).with_xyz(64, 32, 1)
+                VirtualWindow::new(TEST_A_WIDTH, TEST_A_HEIGHT).with_xyz(64, 32, 1)
             }
             super::definitions::VW_TEST_B => {
-                VirtualWindow::new( TEST_A_WIDTH, TEST_A_HEIGHT).with_xyz(200, 40, 2)
+                VirtualWindow::new(TEST_A_WIDTH, TEST_A_HEIGHT).with_xyz(200, 40, 2)
             }
             _ => unreachable!(),
         });

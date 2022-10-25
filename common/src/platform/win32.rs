@@ -236,16 +236,16 @@ unsafe extern "system" fn main_window_callback(
             data.input.set_key(InputCode::LMB, false);
         }
         WM_RBUTTONDOWN => {
-            data.input.set_key(InputCode::LMB, true);
+            data.input.set_key(InputCode::RMB, true);
         }
         WM_RBUTTONUP => {
-            data.input.set_key(InputCode::LMB, false);
+            data.input.set_key(InputCode::RMB, false);
         }
         WM_MBUTTONDOWN => {
-            data.input.set_key(InputCode::LMB, true);
+            data.input.set_key(InputCode::MMB, true);
         }
         WM_MBUTTONUP => {
-            data.input.set_key(InputCode::LMB, false);
+            data.input.set_key(InputCode::MMB, false);
         }
         WM_MOUSEMOVE => {
             if !data.has_focus {
