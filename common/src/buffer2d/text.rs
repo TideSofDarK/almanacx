@@ -3,6 +3,8 @@ use crate::buffer2d::{B2D, B2DO, B2DT};
 const CHARS_FIRST: usize = 0x20;
 const CHARS_LAST: usize = 0x7f;
 const CHARS_COUNT: usize = CHARS_LAST - CHARS_FIRST;
+const CHARS_SPACE: usize = CHARS_FIRST;
+const CHARS_LB: usize = '\n' as usize;
 
 pub struct Glyph(Vec<(i32, i32, u16)>);
 
@@ -41,18 +43,30 @@ impl Font {
         Self { glyphs, glyph_size }
     }
 
-    pub fn blit_str_wrap<T: B2DT>(&self, dest: &mut B2D<T>, s: &str, x: i32, y: i32) -> i32 {
+    pub fn blit_str_wrap<T: B2DT>(
+        &self,
+        dest: &mut B2D<T>,
+        s: &str,
+        x: i32,
+        y: i32,
+        wrap_offset: i32,
+    ) -> i32 {
         let mut col = 0;
         let mut row = 0;
         for c in s.chars() {
+            if c as usize == CHARS_LB {
+                col = wrap_offset;
+                row += 1;
+                continue;
+            }
             let mut dest_x = x + (col * self.glyph_size.0);
             if dest_x > dest.width - self.glyph_size.0 {
-                dest_x = x;
-                col = 0;
+                col = wrap_offset;
                 row += 1;
-                if c as usize == CHARS_FIRST {
+                if c as usize == CHARS_SPACE {
                     continue;
                 }
+                dest_x = x + (col * self.glyph_size.0);
             }
             self.blit_char(dest, c, dest_x, y + (row * self.glyph_size.1));
             col += 1;
@@ -74,16 +88,16 @@ impl Font {
 
     pub fn blit_char<T: B2DT>(&self, dest: &mut B2D<T>, c: char, x: i32, y: i32) {
         let u = c as usize;
-        if u < CHARS_FIRST || u > CHARS_LAST {
+        if u <= CHARS_FIRST || u > CHARS_LAST {
             return;
         }
-        if u != CHARS_FIRST {
+
             let u = u - CHARS_FIRST;
             let glyph = &self.glyphs[u];
 
             for glyph_pixel in glyph.0.iter() {
                 dest.set_color(glyph_pixel.0 + x, glyph_pixel.1 + y, glyph_pixel.2);
             }
-        }
+
     }
 }

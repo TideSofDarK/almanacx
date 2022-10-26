@@ -4,8 +4,8 @@ use crate::{
     utils::color_from_tuple,
 };
 
-const CONSOLE_COLOR: u16 = color_from_tuple((2, 2, 2));
-const CONSOLE_LINE_SPACING: i32 = 2;
+const CONSOLE_COLOR: u16 = color_from_tuple((0, 0, 0));
+const CONSOLE_LINE_SPACING: i32 = 4;
 
 pub struct Console {
     width: i32,
@@ -43,6 +43,7 @@ impl Console {
             text,
             font.glyph_size.0,
             self.next_y + font.glyph_size.1,
+            2,
         );
         self.next_y += offset_y + font.glyph_size.1 + CONSOLE_LINE_SPACING;
     }

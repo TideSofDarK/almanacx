@@ -15,6 +15,7 @@ use common::{
         Application,
     },
     renderer::{camera::Camera, utils::draw_grid, Renderer},
+    utils::color_from_tuple,
 };
 
 use self::{definitions::VW_TEST_A, player::Player, world::World};
@@ -104,7 +105,7 @@ impl Application for Game {
         // test_a.minimized = !input.is_held(InputCode::LMB);
 
         if let Some(mut main_buffer) = main_buffer {
-            main_buffer.bitmap.fill(0);
+            main_buffer.bitmap.fill(color_from_tuple((2, 2, 2)));
 
             self.renderer.begin(self.camera.proj * self.player.view);
 
@@ -121,30 +122,24 @@ impl Application for Game {
 
             // buffer.blit_buffer(&self.renderer.color_buffer, 0, 0);
 
-            if !test_a.minimized {
-                let mut test_a_buffer = test_a.buffer.borrow_mut();
+            // if !test_a.minimized {
+            // let mut test_a_buffer = test_a.buffer.borrow_mut();
 
-                self.font.blit_str_wrap(
-                    &mut test_a_buffer,
-                    "Wrapped text Wrapped text Wrapped text Wrapped text ",
-                    12,
-                    12,
-                );
-                // self.font
-                //     .blit_str(&mut test_a_buffer, "!@#$%^&s*()_+", 12, 12);
+            // self.font
+            //     .blit_str(&mut test_a_buffer, "!@#$%^&s*()_+", 12, 12);
 
-                //     self.font
-                //         .blit_str(&mut test_a_buffer, "1234567890-=", 12, 12 + 8);
+            //     self.font
+            //         .blit_str(&mut test_a_buffer, "1234567890-=", 12, 12 + 8);
 
-                //     self.font
-                //         .blit_str(&mut test_a_buffer, "AaBbCcDdEeFfGgHhIiJjKk", 12, 12 + 16);
+            //     self.font
+            //         .blit_str(&mut test_a_buffer, "AaBbCcDdEeFfGgHhIiJjKk", 12, 12 + 16);
 
-                //     self.font
-                //         .blit_str(&mut test_a_buffer, "LlMmNnOoPpQqRrSsTtUuVv", 12, 12 + 24);
+            //     self.font
+            //         .blit_str(&mut test_a_buffer, "LlMmNnOoPpQqRrSsTtUuVv", 12, 12 + 24);
 
-                //     self.font
-                //         .blit_str(&mut test_a_buffer, "Ww  Xx Yy Zz", 12, 12 + 32);
-            }
+            //     self.font
+            //         .blit_str(&mut test_a_buffer, "Ww  Xx Yy Zz", 12, 12 + 32);
+            // }
 
             self.stack.blit(&self.border, &mut main_buffer);
             self.console.blit(&mut main_buffer);

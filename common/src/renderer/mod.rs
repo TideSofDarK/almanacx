@@ -2,10 +2,7 @@ pub mod camera;
 mod clipping;
 pub mod utils;
 
-use std::{
-    cell::{RefCell, RefMut},
-    rc::Rc,
-};
+use std::{cell::RefCell, rc::Rc};
 
 use cgmath::{
     InnerSpace, Matrix3, Matrix4, SquareMatrix, Vector2, Vector3, Vector4, VectorSpace, Zero,

@@ -59,10 +59,19 @@ fn load_game() -> Game {
             &console_font,
         );
     }
+    font.blit_str_wrap(
+        &mut virtual_windows[VW_TEST_A].buffer.borrow_mut(),
+        "Wrapped text Wrapped text Wrapped text Wrapped text ",
+        12,
+        12,
+        0,
+    );
     let renderer = Renderer::new(&virtual_windows[VW_PRIMARY].buffer);
     console.put_line("Renderer created", &console_font);
     let stack = VirtualWindowStack::new(virtual_windows);
     console.put_line("Window stack activated", &console_font);
+
+    console.put_line("Line break test\nShould be new line", &console_font);
 
     let game_state = GameState::Action;
     let camera = Camera::perspective(
