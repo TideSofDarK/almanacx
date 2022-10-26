@@ -34,8 +34,8 @@ struct BMPHeader {
 }
 const HEADER_SIZE: usize = mem::size_of::<BMPHeader>();
 
-pub fn load_bmp(path: &str) -> io::Result<B2DO> {
-    let mut f = File::open(path)?;
+pub fn load_bmp(path: &str) -> B2DO {
+    let mut f = File::open(path).expect("[BMP] Error reading file!");
     let mut header: BMPHeader = unsafe { mem::zeroed() };
 
     unsafe {
@@ -44,33 +44,26 @@ pub fn load_bmp(path: &str) -> io::Result<B2DO> {
     }
 
     if header.signature != SIGNATURE {
-        return Err(std::io::Error::new(
-            ErrorKind::InvalidData,
-            "[BMP] Signature didn't match!",
-        ));
+        panic!("[BMP] Signature didn't match!");
     }
 
     if header.bits_per_pixel != 24 && header.bits_per_pixel != 32 {
-        return Err(std::io::Error::new(
-            ErrorKind::InvalidData,
-            "[BMP] Unsupported bit depth!",
-        ));
+        panic!("[BMP] Unsupported bit depth!");
     }
 
     if header.compression != 0 && header.compression != 3 {
-        return Err(std::io::Error::new(
-            ErrorKind::InvalidData,
-            format!("[BMP] Compression mode {:?} is not supported!", {
-                header.compression
-            }),
-        ));
+        panic!("[BMP] Compression mode {:?} is not supported!", {
+            header.compression
+        });
     }
 
     let bytes_per_pixel = (header.bits_per_pixel / u8::BITS as u16) as usize;
 
     let mut color_buf = vec![0; (header.width * header.height) as usize * bytes_per_pixel];
-    f.seek(SeekFrom::Start(header.offset as u64))?;
-    f.read_exact(color_buf.as_mut_slice())?;
+    f.seek(SeekFrom::Start(header.offset as u64))
+        .expect("[BMP] Error seeking!");
+    f.read_exact(color_buf.as_mut_slice())
+        .expect("[BMP] Error reading!");
 
     let pixels = if header.compression == 0 && header.bits_per_pixel == 24 {
         if header.width != header.height
@@ -123,11 +116,11 @@ pub fn load_bmp(path: &str) -> io::Result<B2DO> {
         panic!("[BMP] Wrong combination of compression and bit depth!");
     };
 
-    Ok(B2DO {
+    B2DO {
         width: header.width,
         height: header.height,
-        pixels,
-    })
+        bitmap: pixels,
+    }
 }
 
 fn shift32(value: u32, shift: u32) -> u32 {

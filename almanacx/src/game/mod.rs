@@ -1,17 +1,15 @@
 pub mod definitions;
 pub mod player;
-pub mod windows;
 pub mod world;
 
 use cgmath::{Vector3, Zero};
 use common::{
     buffer2d::{
-        text::{blit_str, Font},
-        virtual_window::{VirtualWindow, VirtualWindowStack, WindowBorder},
+        text::Font,
+        virtual_window::{VirtualWindowStack, WindowBorder},
         B2DO, B2DS,
     },
     console::Console,
-    image::bmp,
     platform::{
         input::{Input, InputCode},
         Application,
@@ -19,12 +17,7 @@ use common::{
     renderer::{camera::Camera, utils::draw_grid, Renderer},
 };
 
-use self::{
-    definitions::{PRIMARY_HEIGHT, PRIMARY_WIDTH, VW_PRIMARY, VW_TEST_A, REFERENCE_WIDTH},
-    player::Player,
-    windows::{create_virtual_windows, load_border_texture},
-    world::World,
-};
+use self::{definitions::VW_TEST_A, player::Player, world::World};
 
 pub enum GameState {
     Action,
@@ -44,38 +37,6 @@ pub struct Game {
     pub font: Font,
     pub x: i32,
     pub y: i32,
-}
-
-impl Game {
-    pub fn new() -> Self {
-        let virtual_windows = create_virtual_windows();
-        let renderer = Renderer::new(&virtual_windows[VW_PRIMARY].buffer);
-
-        Self {
-            console: Console::new(REFERENCE_WIDTH / 3),
-            stack: VirtualWindowStack::new(virtual_windows),
-            game_state: GameState::Action,
-            renderer: renderer,
-            camera: Camera::perspective(
-                f32::to_radians(90.0),
-                PRIMARY_WIDTH as f32 / PRIMARY_HEIGHT as f32,
-                0.01,
-                100.0,
-            ),
-            player: Player::new(),
-            world: World::new(),
-            texture: bmp::load_bmp("./assets/floor.bmp").expect("no such bmp file"),
-            border: WindowBorder::new(load_border_texture()),
-            font: Font {
-                bitmap: bmp::load_bmp("./assets/conchars.bmp").expect("no such bmp file"),
-                char_size: 8,
-                offset_x: 0,
-                offset_y: 2,
-            },
-            x: 0,
-            y: 0,
-        }
-    }
 }
 
 impl Application for Game {
@@ -130,7 +91,7 @@ impl Application for Game {
             println!("{:?}", self.renderer.tris_count);
         }
 
-        if input.is_pressed(InputCode::Grave) {
+        if input.is_pressed(InputCode::F11) {
             println!("{:?}", dt);
         }
 
@@ -143,7 +104,7 @@ impl Application for Game {
         // test_a.minimized = !input.is_held(InputCode::LMB);
 
         if let Some(mut main_buffer) = main_buffer {
-            main_buffer.pixels.fill(0);
+            main_buffer.bitmap.fill(0);
 
             self.renderer.begin(self.camera.proj * self.player.view);
 
@@ -163,27 +124,26 @@ impl Application for Game {
             if !test_a.minimized {
                 let mut test_a_buffer = test_a.buffer.borrow_mut();
 
-                blit_str(&mut test_a_buffer, "!@#$%^&s*()_+", 12, 12, &self.font);
-
-                blit_str(&mut test_a_buffer, "1234567890-=", 12, 12 + 8, &self.font);
-
-                blit_str(
+                self.font.blit_str_wrap(
                     &mut test_a_buffer,
-                    "AaBbCcDdEeFfGgHhIiJjKk",
+                    "Wrapped text Wrapped text Wrapped text Wrapped text ",
                     12,
-                    12 + 16,
-                    &self.font,
-                );
-
-                blit_str(
-                    &mut test_a_buffer,
-                    "LlMmNnOoPpQqRrSsTtUuVv",
                     12,
-                    12 + 24,
-                    &self.font,
                 );
+                // self.font
+                //     .blit_str(&mut test_a_buffer, "!@#$%^&s*()_+", 12, 12);
 
-                blit_str(&mut test_a_buffer, "WwXxYyZz", 12, 12 + 32, &self.font);
+                //     self.font
+                //         .blit_str(&mut test_a_buffer, "1234567890-=", 12, 12 + 8);
+
+                //     self.font
+                //         .blit_str(&mut test_a_buffer, "AaBbCcDdEeFfGgHhIiJjKk", 12, 12 + 16);
+
+                //     self.font
+                //         .blit_str(&mut test_a_buffer, "LlMmNnOoPpQqRrSsTtUuVv", 12, 12 + 24);
+
+                //     self.font
+                //         .blit_str(&mut test_a_buffer, "Ww  Xx Yy Zz", 12, 12 + 32);
             }
 
             self.stack.blit(&self.border, &mut main_buffer);

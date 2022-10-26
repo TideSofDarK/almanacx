@@ -27,6 +27,7 @@ impl WindowBorder {
 }
 
 pub struct VirtualWindow {
+    pub name: String,
     pub x: i32,
     pub y: i32,
     pub z: i32,
@@ -36,8 +37,9 @@ pub struct VirtualWindow {
 }
 
 impl VirtualWindow {
-    pub fn new(width: i32, height: i32) -> Self {
+    pub fn new(name: String, width: i32, height: i32) -> Self {
         Self {
+            name: name,
             x: 0,
             y: 0,
             z: 0,
@@ -62,14 +64,14 @@ impl VirtualWindow {
     pub fn blit_with_border<T: B2DT>(&mut self, dest: &mut B2D<T>, border: &WindowBorder) {
         let buffer = self.buffer.borrow();
         dest.blit_full(
-            &buffer.pixels,
+            &buffer.bitmap,
             (buffer.width, buffer.height),
             (self.x, self.y),
         );
 
         // Top left
         dest.blit_region_alpha(
-            &border.texture.pixels,
+            &border.texture.bitmap,
             (0, 0),
             (border.size, border.size),
             border.texture.width,
@@ -81,7 +83,7 @@ impl VirtualWindow {
             ..(self.x + buffer.width - border.size + border.offset)
         {
             dest.blit_region_alpha(
-                &border.texture.pixels,
+                &border.texture.bitmap,
                 (border.size + border.padding, 0),
                 (border.padding, border.size),
                 border.texture.width,
@@ -89,7 +91,7 @@ impl VirtualWindow {
             );
 
             dest.blit_region_alpha(
-                &border.texture.pixels,
+                &border.texture.bitmap,
                 (border.size + border.padding, border.size + border.padding),
                 (border.padding, border.size),
                 border.texture.width,
@@ -99,7 +101,7 @@ impl VirtualWindow {
 
         // Top right
         dest.blit_region_alpha(
-            &border.texture.pixels,
+            &border.texture.bitmap,
             (border.size + border.padding, 0),
             (border.size, border.size),
             border.texture.width,
@@ -111,7 +113,7 @@ impl VirtualWindow {
 
         // Bottom left
         dest.blit_region_alpha(
-            &border.texture.pixels,
+            &border.texture.bitmap,
             (0, border.size + border.padding),
             (border.size, border.size),
             border.texture.width,
@@ -123,7 +125,7 @@ impl VirtualWindow {
 
         // Bottom right
         dest.blit_region_alpha(
-            &border.texture.pixels,
+            &border.texture.bitmap,
             (border.size + border.padding, border.size + border.padding),
             (border.size, border.size),
             border.texture.width,
@@ -138,7 +140,7 @@ impl VirtualWindow {
             ..(self.y + buffer.height - border.size + border.offset)
         {
             dest.blit_region_alpha(
-                &border.texture.pixels,
+                &border.texture.bitmap,
                 (0, border.size + border.padding),
                 (border.size, border.padding),
                 border.texture.width,
@@ -146,7 +148,7 @@ impl VirtualWindow {
             );
 
             dest.blit_region_alpha(
-                &border.texture.pixels,
+                &border.texture.bitmap,
                 (border.size + border.padding, border.size + border.padding),
                 (border.size, border.padding),
                 border.texture.width,

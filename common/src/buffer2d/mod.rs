@@ -21,7 +21,7 @@ pub type B2DS<'a> = B2D<&'a mut [u16]>;
 pub struct B2D<T: B2DT> {
     pub width: i32,
     pub height: i32,
-    pub pixels: T,
+    pub bitmap: T,
 }
 
 impl B2DO {
@@ -29,28 +29,28 @@ impl B2DO {
         Self {
             width: width,
             height: height,
-            pixels: vec![0; (width * height) as usize],
+            bitmap: vec![0; (width * height) as usize],
         }
     }
 
     pub fn resize(&mut self, width: i32, height: i32) {
         self.width = width;
         self.height = height;
-        self.pixels.resize((width * height) as usize, 0);
+        self.bitmap.resize((width * height) as usize, 0);
     }
 
     pub fn as_b2ds(&mut self) -> B2DS {
         B2DS {
             width: self.width,
             height: self.height,
-            pixels: &mut self.pixels,
+            bitmap: &mut self.bitmap,
         }
     }
 }
 
 impl<T: B2DT> B2D<T> {
     pub fn get_color(&self, x: usize, y: usize) -> u16 {
-        self.pixels[(y * self.width as usize) + x]
+        self.bitmap[(y * self.width as usize) + x]
     }
 
     pub fn sample(&self, u: f32, v: f32) -> u16 {
@@ -65,7 +65,7 @@ impl<T: B2DT> B2D<T> {
     }
 
     pub fn set_color_by_index(&mut self, index: usize, c: u16) {
-        self.pixels[index] = c;
+        self.bitmap[index] = c;
     }
 
     pub fn draw_line_2d(&mut self, p0: Vector3<f32>, p1: Vector3<f32>, c: u16) {
@@ -130,13 +130,13 @@ impl<T: B2DT> B2D<T> {
         for y in offset.1..offset.1 + size.1 {
             let index = calculate_index(offset.0, y, self.width) as usize;
             // self.pixels[index..index + size.0 as usize].fill(color);
-            self.pixels[index..index + size.0 as usize].iter_mut().for_each(|dest| *dest = *dest & color);
+            self.bitmap[index..index + size.0 as usize].iter_mut().for_each(|dest| *dest = *dest & color);
         }
     }
 
     pub fn blit_buffer_full<A: B2DT>(&mut self, buffer: &B2D<A>, offset: (i32, i32)) {
         self.blit_full(
-            &buffer.pixels,
+            &buffer.bitmap,
             (buffer.width as i32, buffer.height as i32),
             offset,
         )
@@ -144,7 +144,7 @@ impl<T: B2DT> B2D<T> {
 
     pub fn blit_buffer_full_alpha<A: B2DT>(&mut self, buffer: &B2D<A>, offset: (i32, i32)) {
         self.blit_full_alpha(
-            &buffer.pixels,
+            &buffer.bitmap,
             (buffer.width as i32, buffer.height as i32),
             offset,
         )
@@ -241,7 +241,7 @@ impl<T: B2DT> B2D<T> {
             let source_index = calculate_index(source_offset_x, y + source_offset_y, source_width);
 
             method(
-                &mut self.pixels[dest_index..dest_index + slice_length],
+                &mut self.bitmap[dest_index..dest_index + slice_length],
                 &source[source_index..source_index + slice_length],
             );
         }

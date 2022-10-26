@@ -1,5 +1,6 @@
 [workspace]
 members = ["common", "almanacx", "quill"]
+default-members = ["almanacx"]
 resolver = "2"
 
 [workspace.package]

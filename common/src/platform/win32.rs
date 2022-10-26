@@ -138,7 +138,7 @@ pub unsafe fn init_application<A: Application>(mut app: A) {
                         Some(B2DS {
                             width: user_data.bitmap_info.bmiHeader.biWidth,
                             height: user_data.bitmap_info.bmiHeader.biHeight.abs(),
-                            pixels: slice::from_raw_parts_mut(
+                            bitmap: slice::from_raw_parts_mut(
                                 user_data.pixels,
                                 (user_data.bitmap_info.bmiHeader.biWidth
                                     * user_data.bitmap_info.bmiHeader.biHeight.abs()

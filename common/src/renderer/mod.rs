@@ -58,7 +58,7 @@ impl Renderer {
 
     pub fn begin(&mut self, mat: Matrix4<f32>) {
         self.view_proj_mat = mat;
-        self.color_buffer.borrow_mut().pixels.fill(7500);
+        self.color_buffer.borrow_mut().bitmap.fill(7500);
         self.z_buffer.fill(f32::MAX);
         self.tris_count = 0;
     }
