@@ -61,7 +61,7 @@ fn load_game() -> Game {
     }
     font.blit_str_wrap(
         &mut virtual_windows[VW_TEST_A].buffer.borrow_mut(),
-        "WrappedWrappedWrappedWrapped text Wrapped text Wrapped text Wrapped text ",
+        "WrappedWrappedWrappedWrappedssssssssssssssssssssssssssssssssssssssssssss text Wrapped text Wrapped text Wrapped text ",
         12,
         12,
         0,

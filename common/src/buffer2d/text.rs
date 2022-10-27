@@ -58,7 +58,7 @@ impl Font {
 
         let max_width = dest.width - x;
 
-        string.split(' ').for_each(|word| {
+        'words: for word in string.split(' ') {
             let word_width = word.len() as i32 * self.glyph_size.0;
             let mut char_wrap = false;
             if word_width > max_width {
@@ -83,11 +83,15 @@ impl Font {
                     }
                     dest_x = x + (col * self.glyph_size.0);
                 }
-                self.blit_char(dest, c, dest_x, y + (row * self.glyph_size.1));
+                let dest_y = y + (row * self.glyph_size.1);
+                if dest_y + self.glyph_size.1 > dest.height {
+                    break 'words;
+                }
+                self.blit_char(dest, c, dest_x, dest_y);
                 col += 1;
             }
             col += 1;
-        });
+        }
 
         return row * self.glyph_size.1;
     }
