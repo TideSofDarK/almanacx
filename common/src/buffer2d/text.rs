@@ -1,3 +1,5 @@
+use std::str::Chars;
+
 use crate::buffer2d::{B2D, B2DO, B2DT};
 
 const CHARS_FIRST: usize = 0x20;
@@ -46,31 +48,47 @@ impl Font {
     pub fn blit_str_wrap<T: B2DT>(
         &self,
         dest: &mut B2D<T>,
-        s: &str,
+        string: &str,
         x: i32,
         y: i32,
         wrap_offset: i32,
     ) -> i32 {
         let mut col = 0;
         let mut row = 0;
-        for c in s.chars() {
-            if c as usize == CHARS_LB {
+
+        let max_width = dest.width - x;
+
+        string.split(' ').for_each(|word| {
+            let word_width = word.len() as i32 * self.glyph_size.0;
+            let mut char_wrap = false;
+            if word_width > max_width {
+                char_wrap = true;
+            } else if max_width - (col * self.glyph_size.0) - word_width <= 0 {
                 col = wrap_offset;
                 row += 1;
-                continue;
             }
-            let mut dest_x = x + (col * self.glyph_size.0);
-            if dest_x > dest.width - self.glyph_size.0 {
-                col = wrap_offset;
-                row += 1;
-                if c as usize == CHARS_SPACE {
+            for c in word.chars() {
+                if c as usize == CHARS_LB {
+                    col = wrap_offset;
+                    row += 1;
                     continue;
                 }
-                dest_x = x + (col * self.glyph_size.0);
+
+                let mut dest_x = x + (col * self.glyph_size.0);
+                if char_wrap && dest_x > dest.width - self.glyph_size.0 {
+                    col = wrap_offset;
+                    row += 1;
+                    if c as usize == CHARS_SPACE {
+                        continue;
+                    }
+                    dest_x = x + (col * self.glyph_size.0);
+                }
+                self.blit_char(dest, c, dest_x, y + (row * self.glyph_size.1));
+                col += 1;
             }
-            self.blit_char(dest, c, dest_x, y + (row * self.glyph_size.1));
             col += 1;
-        }
+        });
+
         return row * self.glyph_size.1;
     }
 
@@ -92,12 +110,11 @@ impl Font {
             return;
         }
 
-            let u = u - CHARS_FIRST;
-            let glyph = &self.glyphs[u];
+        let u = u - CHARS_FIRST;
+        let glyph = &self.glyphs[u];
 
-            for glyph_pixel in glyph.0.iter() {
-                dest.set_color(glyph_pixel.0 + x, glyph_pixel.1 + y, glyph_pixel.2);
-            }
-
+        for glyph_pixel in glyph.0.iter() {
+            dest.set_color(glyph_pixel.0 + x, glyph_pixel.1 + y, glyph_pixel.2);
+        }
     }
 }
