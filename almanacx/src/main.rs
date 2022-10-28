@@ -2,7 +2,7 @@ mod game;
 
 use common::{
     buffer2d::{
-        text::Font,
+        text::{blit_str_wrap, Font},
         virtual_window::{self, VirtualWindow, VirtualWindowStack, WindowBorder},
         B2DO,
     },
@@ -49,29 +49,30 @@ fn load_game() -> Game {
     let font = Font::new(bmp::load_bmp("./assets/conchars.bmp"), (8, 8), 0, 2);
     let console_font = Font::new(bmp::load_bmp("./assets/conchars.bmp"), (8, 8), 0, 10);
 
-    let mut console = Console::new(REFERENCE_WIDTH / 3, REFERENCE_HEIGHT);
-    console.put_line("Console activated", &console_font);
+    let mut console = Console::new(REFERENCE_WIDTH / 3, REFERENCE_HEIGHT, console_font);
+    console.put_line("Console activated");
 
     let virtual_windows = create_virtual_windows();
     for virtual_window in &virtual_windows {
-        console.put_string(
-            format!("Virtual window \"{}\" created", virtual_window.name),
-            &console_font,
-        );
+        console.put_string(format!(
+            "Virtual window \"{}\" created",
+            virtual_window.name
+        ));
     }
-    font.blit_str_wrap(
+    blit_str_wrap(
+        &font,
         &mut virtual_windows[VW_TEST_A].buffer.borrow_mut(),
         "WrappedWrappedWrappedWrappedssssssssssssssssssssssssssssssssssssssssssss text Wrapped text Wrapped text Wrapped text ",
-        12,
-        12,
+        (12, 12),
         0,
+        false
     );
     let renderer = Renderer::new(&virtual_windows[VW_PRIMARY].buffer);
-    console.put_line("Renderer created", &console_font);
+    console.put_line("Renderer created");
     let stack = VirtualWindowStack::new(virtual_windows);
-    console.put_line("Window stack activated", &console_font);
+    console.put_line("Window stack activated");
 
-    console.put_line("Line break test\nShould be new line", &console_font);
+    console.put_line("Line break test\nShould be new line");
 
     let game_state = GameState::Action;
     let camera = Camera::perspective(
@@ -98,6 +99,8 @@ fn load_game() -> Game {
         font,
         x,
         y,
+        tick: 0.0,
+        time_start: std::time::Instant::now(),
     }
 }
 

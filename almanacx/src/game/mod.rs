@@ -2,6 +2,8 @@ pub mod definitions;
 pub mod player;
 pub mod world;
 
+use std::time::Instant;
+
 use cgmath::{Vector3, Zero};
 use common::{
     buffer2d::{
@@ -38,6 +40,8 @@ pub struct Game {
     pub font: Font,
     pub x: i32,
     pub y: i32,
+    pub tick: f32,
+    pub time_start: Instant,
 }
 
 impl Application for Game {
@@ -94,6 +98,17 @@ impl Application for Game {
 
         if input.is_pressed(InputCode::F11) {
             println!("{:?}", dt);
+        }
+
+        self.tick += dt;
+        if self.tick > 1.1 {
+            self.tick = 0.0;
+            self.console.put_string(format!(
+                "Current Tick Current tick Current tick Current tick: \"{}\"",
+                std::time::Instant::now()
+                    .duration_since(self.time_start)
+                    .as_secs_f32()
+            ));
         }
 
         if !self.console.update(dt, &input) {
