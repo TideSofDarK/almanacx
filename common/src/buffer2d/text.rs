@@ -1,12 +1,10 @@
-use std::str::Chars;
-
 use crate::buffer2d::{B2D, B2DO, B2DT};
 
-const CHARS_FIRST: usize = 0x20;
+const CHARS_FIRST: usize = ' ' as usize;
 const CHARS_LAST: usize = 0x7f;
 const CHARS_COUNT: usize = CHARS_LAST - CHARS_FIRST;
 const CHARS_SPACE: usize = CHARS_FIRST;
-const CHARS_LB: usize = '\n' as usize;
+const CHARS_LINE_BREAK: usize = '\n' as usize;
 
 pub struct Glyph(Vec<(i32, i32, u16)>);
 
@@ -70,7 +68,7 @@ pub fn blit_str_wrap<T: B2DT>(
             dest_y += font.glyph_size.1;
         }
         for c in word.chars() {
-            if c as usize == CHARS_LB {
+            if c as usize == CHARS_LINE_BREAK {
                 col = wrap_new_line_spaces;
                 dest_y += font.glyph_size.1;
                 continue;
@@ -88,13 +86,12 @@ pub fn blit_str_wrap<T: B2DT>(
             if dest_y + font.glyph_size.1 > dest.height {
                 if scroll {
                     let scroll_amount = dest_y + font.glyph_size.1 - dest.height;
-                    let scroll_rows =
-                        (scroll_amount as f32 / font.glyph_size.1 as f32).ceil() as i32;
                     dest_y = dest_y - scroll_amount;
 
-                    let rotate_length = (dest.width * scroll_amount) as usize;
-                    dest.bitmap.rotate_left(rotate_length);
-                    dest.bitmap[((dest.width * dest.height) as usize - rotate_length)..].fill(0);
+                    let scroll_length = (dest.width * scroll_amount) as usize;
+                    let dest_length = (dest.width * dest.height) as usize;
+                    dest.bitmap.copy_within(scroll_length..dest_length, 0);
+                    dest.bitmap[(dest_length - scroll_length)..].fill(0);
                 } else {
                     break 'words;
                 }

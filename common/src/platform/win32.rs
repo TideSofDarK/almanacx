@@ -1,9 +1,5 @@
 use core::slice;
-use std::{
-    ffi::c_void,
-    mem::{self},
-    time::Instant,
-};
+use std::{ffi::c_void, mem, time::Instant};
 
 use windows_sys::{
     core::*,
@@ -151,6 +147,7 @@ pub unsafe fn init_application<A: Application>(mut app: A) {
                     break 'outer;
                 }
                 accumulator -= MS_PER_UPDATE;
+                user_data.input.last_char = None;
                 user_data.input.cache_previous();
             }
 
@@ -274,6 +271,15 @@ unsafe extern "system" fn main_window_callback(
                 data.input
                     .set_key(vkey_to_input_code(wparam as VIRTUAL_KEY), false);
             }
+        }
+        WM_CHAR => {
+            if !data.has_focus {
+                return 0;
+            }
+
+            // dbg!(wparam);
+
+            data.input.last_char = Some(wparam as u8 as char);
         }
         WM_KILLFOCUS => {
             data.has_focus = false;

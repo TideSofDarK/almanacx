@@ -178,11 +178,13 @@ pub enum InputCode {
     MMB,
 
     Invalid,
+    Enter,
 }
 
 pub struct Input {
     keys: [bool; 256],
     keys_previous: [bool; 256],
+    pub last_char: Option<char>,
     pub mouse_x: i32,
     pub mouse_y: i32,
 }
@@ -192,6 +194,7 @@ impl Input {
         Self {
             keys: [false; 256],
             keys_previous: [false; 256],
+            last_char: None,
             mouse_x: 0,
             mouse_y: 0,
         }

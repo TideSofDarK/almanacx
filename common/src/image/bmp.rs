@@ -67,17 +67,17 @@ pub fn load_bmp(path: &str) -> B2DO {
 
     let pixels = if header.compression == 0 && header.bits_per_pixel == 24 {
         if header.width != header.height
-            || !((header.width & (header.width - 1)) != 0)
-            || !((header.height & (header.height - 1)) != 0)
+            || !((header.width & (header.width - 1)) == 0)
+            || !((header.height & (header.height - 1)) == 0)
         {
             panic!("[BMP] Width and/or height are not power of two!");
         }
 
-        Vec::from_iter(color_buf.chunks_exact_mut(bytes_per_pixel).map(|c| {
+        Vec::from_iter(color_buf.rchunks_exact_mut(bytes_per_pixel).map(|c| {
             color_from_tuple((
-                (c[2] as f32 / 256.0 * 32.0).round() as u16,
-                (c[1] as f32 / 256.0 * 32.0).round() as u16,
-                (c[0] as f32 / 256.0 * 32.0).round() as u16,
+                (c[2] as f32 / 256.0 * 32.0) as u16,
+                (c[1] as f32 / 256.0 * 32.0) as u16,
+                (c[0] as f32 / 256.0 * 32.0) as u16,
             ))
         }))
     } else if header.compression == 3 && header.bits_per_pixel == 32 {

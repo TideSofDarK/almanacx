@@ -54,8 +54,8 @@ impl<T: B2DT> B2D<T> {
     }
 
     pub fn sample(&self, u: f32, v: f32) -> u16 {
-        let x = (u * (self.width as f32 - 1.0)).round() as usize;
-        let y = (v * (self.height as f32 - 1.0)).round() as usize;
+        let x = (u * (self.width as f32 - 1.0)) as usize;
+        let y = (v * (self.height as f32 - 1.0)) as usize;
 
         self.get_color(x, y)
     }
@@ -129,8 +129,10 @@ impl<T: B2DT> B2D<T> {
 
         for y in offset.1..offset.1 + size.1 {
             let index = calculate_index(offset.0, y, self.width) as usize;
-            // self.pixels[index..index + size.0 as usize].fill(color);
-            self.bitmap[index..index + size.0 as usize].iter_mut().for_each(|dest| *dest = *dest & color);
+            self.bitmap[index..index + size.0 as usize].fill(color);
+            // self.bitmap[index..index + size.0 as usize]
+            //     .iter_mut()
+            //     .for_each(|dest| *dest = *dest & color);
         }
     }
 
@@ -142,8 +144,8 @@ impl<T: B2DT> B2D<T> {
         )
     }
 
-    pub fn blit_buffer_full_alpha<A: B2DT>(&mut self, buffer: &B2D<A>, offset: (i32, i32)) {
-        self.blit_full_alpha(
+    pub fn blit_buffer_full_masked<A: B2DT>(&mut self, buffer: &B2D<A>, offset: (i32, i32)) {
+        self.blit_full_masked(
             &buffer.bitmap,
             (buffer.width as i32, buffer.height as i32),
             offset,
@@ -154,8 +156,13 @@ impl<T: B2DT> B2D<T> {
         self.blit_region_copy(source, (0, 0), source_size, source_size.0, offset)
     }
 
-    pub fn blit_full_alpha(&mut self, source: &[u16], source_size: (i32, i32), offset: (i32, i32)) {
-        self.blit_region_alpha(source, (0, 0), source_size, source_size.0, offset)
+    pub fn blit_full_masked(
+        &mut self,
+        source: &[u16],
+        source_size: (i32, i32),
+        offset: (i32, i32),
+    ) {
+        self.blit_region_masked(source, (0, 0), source_size, source_size.0, offset)
     }
 
     pub fn blit_region_copy(
@@ -178,7 +185,7 @@ impl<T: B2DT> B2D<T> {
         )
     }
 
-    pub fn blit_region_alpha(
+    pub fn blit_region_masked(
         &mut self,
         source: &[u16],
         source_offset: (i32, i32),
@@ -244,6 +251,38 @@ impl<T: B2DT> B2D<T> {
                 &mut self.bitmap[dest_index..dest_index + slice_length],
                 &source[source_index..source_index + slice_length],
             );
+        }
+    }
+
+    pub fn blit_buffer_full_stretched_masked<B: B2DT>(
+        &mut self,
+        source: &B2D<B>,
+        stretch_to: (i32, i32),
+        offset: (i32, i32),
+    ) {
+        let y_start = offset.1.max(0);
+        let y_end = (y_start + stretch_to.1).clamp(0, self.height);
+        if y_end < 0 {
+            return;
+        }
+        let x_start = offset.0.max(0);
+        let x_end = (x_start + stretch_to.0).clamp(0, self.width);
+        if x_end < 0 {
+            return;
+        }
+        for y_dest in y_start..y_end {
+            for x_dest in x_start..x_end {
+                let u = (x_dest - offset.0) as f32 / stretch_to.0 as f32;
+                let v = (y_dest - offset.1) as f32 / stretch_to.1 as f32;
+
+                let color = source.sample(u.clamp(0.0, 1.0), v.clamp(0.0, 1.0));
+
+                if color == MASK_COLOR {
+                    continue;
+                }
+
+                self.set_color(x_dest, y_dest, color);
+            }
         }
     }
 }

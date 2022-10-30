@@ -1,6 +1,9 @@
 mod view;
 
-use std::time::Instant;
+use std::{
+    collections::{vec_deque, VecDeque},
+    time::Instant,
+};
 
 use common::{
     buffer2d::B2DS,
@@ -27,26 +30,27 @@ fn main() {
     //     console: Console::new(640, 360),
     // });
 
-    let width = 1920usize;
-    let height = 1080usize;
-    let mut color_buffer = vec![1; width * height * 1];
-    let mut color_buffer_clear = vec![0; width * height * 1];
-
-    // let mut dt = DrawTarget::new(color_buffer.as_mut_slice(), width as u32, height as u32);
-
-    // let conchars = bmp::load_bmp("./assets/conchars.bmp").expect("no such bmp file");
+    let width = 5520usize;
+    let height = 5520usize;
+    let mut color_buffer = vec![5; width * height * 1];
+    let mut color_buffer_clear = vec![5; width * height * 1];
 
     let mut last_frame = Instant::now();
-    color_buffer.fill(0);
+    {
+        color_buffer.rotate_left(width * (height / 2));
+        color_buffer[width * (height / 2)..].fill(0);
+    }
     println!("Elapsed1: {:?}", last_frame.elapsed().as_secs_f32());
 
     let mut last_frame = Instant::now();
-    color_buffer.copy_from_slice(&color_buffer_clear);
+    {
+        // color_buffer_clear.rotate_left(width * (height / 2));
+        color_buffer_clear.copy_within(width * (height / 2)..width * height, 0);
+        color_buffer_clear[width * (height / 2)..].fill(0);
+    }
     println!("Elapsed2: {:?}", last_frame.elapsed().as_secs_f32());
 
-    let mut last_frame = Instant::now();
-    for i in 0..width * height * 1 {
-        color_buffer[i] = 0;
+    for i in 0..height * width {
+        assert_eq!(color_buffer[i], color_buffer_clear[i]);
     }
-    println!("Elapsed3: {:?}", last_frame.elapsed().as_secs_f32());
 }

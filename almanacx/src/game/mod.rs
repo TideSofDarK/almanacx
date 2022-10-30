@@ -4,7 +4,7 @@ pub mod world;
 
 use std::time::Instant;
 
-use cgmath::{Vector3, Zero};
+use cgmath::{Vector3, Vector4, Zero};
 use common::{
     buffer2d::{
         text::Font,
@@ -36,6 +36,7 @@ pub struct Game {
     pub player: Player,
     pub world: World,
     pub texture: B2DO,
+    pub crusader: B2DO,
     pub border: WindowBorder,
     pub font: Font,
     pub x: i32,
@@ -103,12 +104,12 @@ impl Application for Game {
         self.tick += dt;
         if self.tick > 1.1 {
             self.tick = 0.0;
-            self.console.put_string(format!(
-                "Current Tick Current tick Current tick Current tick: \"{}\"",
-                std::time::Instant::now()
-                    .duration_since(self.time_start)
-                    .as_secs_f32()
-            ));
+            // self.console.put_string(format!(
+            //     "Current Tick Current tick Current tick Current tick: \"{}\"",
+            //     std::time::Instant::now()
+            //         .duration_since(self.time_start)
+            //         .as_secs_f32()
+            // ));
         }
 
         if !self.console.update(dt, &input) {
@@ -131,6 +132,12 @@ impl Application for Game {
                     for (v0, v1, v2) in &self.world.triangles {
                         self.renderer.draw_triangle(v0, v1, v2, Some(&self.texture));
                     }
+
+                    self.renderer.draw_sprite(
+                        Vector4::new(-0.5, 0.0, 1.5, 1.0),
+                        1.0,
+                        &self.crusader,
+                    );
                 }
                 GameState::Automap => {}
             }
@@ -156,6 +163,7 @@ impl Application for Game {
             //         .blit_str(&mut test_a_buffer, "Ww  Xx Yy Zz", 12, 12 + 32);
             // }
 
+            // main_buffer.blit_buffer_full_masked(&self.crusader, (0, 0));
             self.stack.blit(&self.border, &mut main_buffer);
             self.console.blit(&mut main_buffer);
         }

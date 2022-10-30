@@ -70,7 +70,7 @@ impl VirtualWindow {
         );
 
         // Top left
-        dest.blit_region_alpha(
+        dest.blit_region_masked(
             &border.texture.bitmap,
             (0, 0),
             (border.size, border.size),
@@ -82,7 +82,7 @@ impl VirtualWindow {
         for x in (self.x - border.offset + border.size)
             ..(self.x + buffer.width - border.size + border.offset)
         {
-            dest.blit_region_alpha(
+            dest.blit_region_masked(
                 &border.texture.bitmap,
                 (border.size + border.padding, 0),
                 (border.padding, border.size),
@@ -90,7 +90,7 @@ impl VirtualWindow {
                 (x, self.y - border.offset),
             );
 
-            dest.blit_region_alpha(
+            dest.blit_region_masked(
                 &border.texture.bitmap,
                 (border.size + border.padding, border.size + border.padding),
                 (border.padding, border.size),
@@ -100,7 +100,7 @@ impl VirtualWindow {
         }
 
         // Top right
-        dest.blit_region_alpha(
+        dest.blit_region_masked(
             &border.texture.bitmap,
             (border.size + border.padding, 0),
             (border.size, border.size),
@@ -112,7 +112,7 @@ impl VirtualWindow {
         );
 
         // Bottom left
-        dest.blit_region_alpha(
+        dest.blit_region_masked(
             &border.texture.bitmap,
             (0, border.size + border.padding),
             (border.size, border.size),
@@ -124,7 +124,7 @@ impl VirtualWindow {
         );
 
         // Bottom right
-        dest.blit_region_alpha(
+        dest.blit_region_masked(
             &border.texture.bitmap,
             (border.size + border.padding, border.size + border.padding),
             (border.size, border.size),
@@ -139,7 +139,7 @@ impl VirtualWindow {
         for y in (self.y - border.offset + border.size)
             ..(self.y + buffer.height - border.size + border.offset)
         {
-            dest.blit_region_alpha(
+            dest.blit_region_masked(
                 &border.texture.bitmap,
                 (0, border.size + border.padding),
                 (border.size, border.padding),
@@ -147,7 +147,7 @@ impl VirtualWindow {
                 (self.x - border.offset, y),
             );
 
-            dest.blit_region_alpha(
+            dest.blit_region_masked(
                 &border.texture.bitmap,
                 (border.size + border.padding, border.size + border.padding),
                 (border.size, border.padding),

@@ -11,7 +11,7 @@ use cgmath::{
 use crate::{
     buffer2d::{B2D, B2DO, B2DT},
     math::{max3, min3, orient2d},
-    utils::{calculate_index, color_from_vec},
+    utils::{calculate_index, color_from_tuple, color_from_vec},
 };
 
 use self::clipping::{clip_line_to_frustum, clip_triangle_to_frustum};
@@ -114,6 +114,43 @@ impl Renderer {
             self.color_buffer
                 .borrow_mut()
                 .draw_line_2d(p0.truncate(), p1.truncate(), c);
+        }
+    }
+
+    pub fn draw_triangle<'t, T: B2DT>(
+        &mut self,
+        v0w: &Vertex,
+        v1w: &Vertex,
+        v2w: &Vertex,
+        texture: Option<&'t B2D<T>>,
+    ) {
+        self.vertex_storage.vertices.clear();
+
+        self.vertex_storage.vertices.push(*v0w);
+        self.vertex_storage.vertices.push(*v1w);
+        self.vertex_storage.vertices.push(*v2w);
+
+        self.vertex_storage.indices.clear();
+
+        self.vertex_storage.indices.push(0);
+        self.vertex_storage.indices.push(1);
+        self.vertex_storage.indices.push(2);
+
+        for i in 0..3 {
+            self.vertex_storage.vertices[i].pos =
+                self.view_proj_mat * self.vertex_storage.vertices[i].pos;
+        }
+
+        if clip_triangle_to_frustum(&mut self.vertex_storage) {
+            for i in 0..(self.vertex_storage.indices.len() / 3) {
+                let t = i * 3;
+                self.rasterize_triangle(
+                    self.vertex_storage.vertices[self.vertex_storage.indices[t]],
+                    self.vertex_storage.vertices[self.vertex_storage.indices[t + 1]],
+                    self.vertex_storage.vertices[self.vertex_storage.indices[t + 2]],
+                    texture,
+                );
+            }
         }
     }
 
@@ -228,39 +265,67 @@ impl Renderer {
         self.tris_count += 1;
     }
 
-    pub fn draw_triangle<'t, T: B2DT>(
-        &mut self,
-        v0w: &Vertex,
-        v1w: &Vertex,
-        v2w: &Vertex,
-        texture: Option<&'t B2D<T>>,
-    ) {
-        self.vertex_storage.vertices.clear();
+    pub fn draw_sprite(&mut self, mut pos_bottom: Vector4<f32>, size: f32, sprite: &B2DO) {
+        let mut color_buffer = self.color_buffer.borrow_mut();
 
-        self.vertex_storage.vertices.push(*v0w);
-        self.vertex_storage.vertices.push(*v1w);
-        self.vertex_storage.vertices.push(*v2w);
+        let mut pos_top = pos_bottom;
+        pos_top.y += size;
 
-        self.vertex_storage.indices.clear();
+        pos_bottom = self.view_proj_mat * pos_bottom;
+        pos_top = self.view_proj_mat * pos_top;
 
-        self.vertex_storage.indices.push(0);
-        self.vertex_storage.indices.push(1);
-        self.vertex_storage.indices.push(2);
+        let z_bottom = pos_bottom.z;
+        let z_top = pos_top.z;
 
-        for i in 0..3 {
-            self.vertex_storage.vertices[i].pos =
-                self.view_proj_mat * self.vertex_storage.vertices[i].pos;
-        }
+        if let Some((mut pos, mut pos_top)) = clip_line_to_frustum(pos_bottom, pos_top) {
+            self.perspective_division(&mut pos);
+            self.transform_viewport(&mut pos);
 
-        if clip_triangle_to_frustum(&mut self.vertex_storage) {
-            for i in 0..(self.vertex_storage.indices.len() / 3) {
-                let t = i * 3;
-                self.rasterize_triangle(
-                    self.vertex_storage.vertices[self.vertex_storage.indices[t]],
-                    self.vertex_storage.vertices[self.vertex_storage.indices[t + 1]],
-                    self.vertex_storage.vertices[self.vertex_storage.indices[t + 2]],
-                    texture,
-                );
+            self.perspective_division(&mut pos_top);
+            self.transform_viewport(&mut pos_top);
+
+            let size = (pos_top.y - pos.y).abs() as i32;
+
+            let offset_x = pos.x as i32 - (size / 2);
+            let offset_y = pos.y as i32 - size;
+
+            let y_start = offset_y.max(0);
+            let y_end = (y_start + size).clamp(0, color_buffer.height);
+            if y_end < 0 {
+                return;
+            }
+            let x_start = offset_x.max(0);
+            let x_end = (x_start + size).clamp(0, color_buffer.width);
+            if x_end < 0 {
+                return;
+            }
+
+            let mut u = 0.0;
+            let mut v = 0.0;
+            let uv_step = 1.0 / size as f32;
+            let mut frag_depth = z_top;
+            let frag_depth_step = (z_bottom - z_top) * uv_step;
+
+            for y_dest in y_start..y_end {
+                v += uv_step;
+                frag_depth += frag_depth_step;
+                for x_dest in x_start..x_end {
+                    u += uv_step;
+
+                    let color = sprite.sample(u, v);
+
+                    if color == crate::buffer2d::MASK_COLOR {
+                        continue;
+                    }
+
+                    let index = calculate_index(x_dest, y_dest, color_buffer.width);
+
+                    if frag_depth < self.z_buffer[index] {
+                        self.z_buffer[index] = frag_depth;
+                        color_buffer.set_color_by_index(index, color);
+                    }
+                }
+                u = 0.0;
             }
         }
     }

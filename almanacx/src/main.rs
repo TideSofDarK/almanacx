@@ -45,6 +45,7 @@ pub fn create_virtual_windows() -> Vec<VirtualWindow> {
 fn load_game() -> Game {
     let world = World::new();
     let texture = bmp::load_bmp("./assets/floor.bmp");
+    let crusader = bmp::load_bmp("./assets/crusader.bmp");
     let border = WindowBorder::new(bmp::load_bmp("./assets/border.bmp"));
     let font = Font::new(bmp::load_bmp("./assets/conchars.bmp"), (8, 8), 0, 2);
     let console_font = Font::new(bmp::load_bmp("./assets/conchars.bmp"), (8, 8), 0, 10);
@@ -95,6 +96,7 @@ fn load_game() -> Game {
         player,
         world,
         texture,
+        crusader,
         border,
         font,
         x,
