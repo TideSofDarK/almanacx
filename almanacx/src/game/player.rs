@@ -1,14 +1,13 @@
-use cgmath::{Matrix4, Point3, Rad, Vector3};
+use cgmath::{Matrix3, Matrix4, Rad, SquareMatrix, Vector3};
+use common::platform::input::{Input, InputCode};
 
 pub struct Player {
     walk_speed: f32,
     turn_speed: f32,
 
-    sign_z: i16,
-    sign_x: i16,
-    sign_angle: i16,
-    sprint: f32,
-
+    pub pitch: f32,
+    pub yaw: f32,
+    pub pos: Vector3<f32>,
     pub view: Matrix4<f32>,
 }
 
@@ -18,50 +17,83 @@ impl Player {
             walk_speed: 1.45,
             turn_speed: 1.45,
 
-            sign_z: 0,
-            sign_x: 0,
-            sign_angle: 0,
-            sprint: 1.0,
-
-            view: Matrix4::look_to_lh(
-                Point3::new(0.0, 0.5, 0.0),
-                -Vector3::unit_z(),
-                Vector3::unit_y(),
-            ),
+            pitch: 0.0,
+            yaw: 0.0,
+            pos: Vector3::new(0.0, 0.5, 0.0),
+            view: Matrix4::identity(),
         }
     }
 
-    pub fn handle_input(
-        &mut self,
-        forward: bool,
-        backward: bool,
-        left: bool,
-        right: bool,
-        turn_left: bool,
-        turn_right: bool,
-        sprint: bool,
-    ) {
-        self.sign_z = forward as i16 + -(backward as i16);
-        self.sign_x = left as i16 + -(right as i16);
+    pub fn update(&mut self, dt: f32, input: &Input) {
+        if input.is_pressed(InputCode::Home) {
+            self.pitch = 0.0;
+        }
 
-        self.sign_angle = turn_right as i16 + -(turn_left as i16);
+        let look_up = input.is_held(InputCode::PageUp);
+        let look_down = input.is_held(InputCode::PageDown);
 
-        self.sprint = if sprint { 2.0 } else { 1.0 };
-    }
+        if look_up ^ look_down {
+            if look_up {
+                self.pitch += dt * self.turn_speed;
+            }
+            if look_down {
+                self.pitch -= dt * self.turn_speed;
+            }
 
-    pub fn update(&mut self, dt: f32) {
-        self.view = Matrix4::from_angle_y(Rad(dt * self.turn_speed * (self.sign_angle as f32)))
-            * Matrix4::from_translation(Vector3::new(
-                self.sign_x as f32 * self.walk_speed * dt * self.sprint,
-                0.0,
-                self.sign_z as f32 * self.walk_speed * dt * self.sprint,
-            ))
-            * self.view;
+            self.pitch = self.pitch.clamp(-0.6, 0.6);
+        }
 
-        // Consume input
-        self.sign_angle = 0;
-        self.sign_x = 0;
-        self.sign_z = 0;
-        self.sprint = 1.0;
+        let turn_left = input.is_held(InputCode::Q) || input.is_held(InputCode::Left);
+        let turn_right = input.is_held(InputCode::E) || input.is_held(InputCode::Right);
+
+        if turn_left ^ turn_right {
+            if turn_left {
+                self.yaw += dt * self.turn_speed;
+            }
+            if turn_right {
+                self.yaw -= dt * self.turn_speed;
+            }
+        }
+
+        let mut walk_sprint_modifier = dt;
+        if input.is_held(InputCode::Shift) {
+            walk_sprint_modifier *= 1.5;
+        }
+
+        let walk_forward = input.is_held(InputCode::W);
+        let walk_backward = input.is_held(InputCode::S);
+
+        if walk_forward ^ walk_backward {
+            if walk_forward {
+                self.pos += Matrix3::from_angle_y(Rad(self.yaw))
+                    * -Vector3::unit_z()
+                    * walk_sprint_modifier;
+            }
+            if walk_backward {
+                self.pos -= Matrix3::from_angle_y(Rad(self.yaw))
+                    * -Vector3::unit_z()
+                    * walk_sprint_modifier;
+            }
+        }
+
+        let walk_left = input.is_held(InputCode::A);
+        let walk_right = input.is_held(InputCode::D);
+
+        if walk_left ^ walk_right {
+            if walk_left {
+                self.pos += Matrix3::from_angle_y(Rad(self.yaw))
+                    * -Vector3::unit_x()
+                    * walk_sprint_modifier;
+            }
+            if walk_right {
+                self.pos -= Matrix3::from_angle_y(Rad(self.yaw))
+                    * -Vector3::unit_x()
+                    * walk_sprint_modifier;
+            }
+        }
+
+        self.view = Matrix4::from_angle_x(Rad(-self.pitch))
+            * Matrix4::from_angle_y(Rad(-self.yaw))
+            * Matrix4::from_translation(-self.pos);
     }
 }

@@ -55,16 +55,6 @@ impl Application for Game {
             return false;
         }
 
-        self.player.handle_input(
-            input.is_held(InputCode::W),
-            input.is_held(InputCode::S),
-            input.is_held(InputCode::A),
-            input.is_held(InputCode::D),
-            input.is_held(InputCode::Left),
-            input.is_held(InputCode::Right),
-            input.is_held(InputCode::Shift),
-        );
-
         if input.is_held(InputCode::W) {
             self.y -= 3;
         }
@@ -112,9 +102,9 @@ impl Application for Game {
             // ));
         }
 
-        if !self.console.update(dt, &input) {
-            self.stack.update(&input);
-            self.player.update(dt);
+        if !self.console.update(dt, input) {
+            self.stack.update(input);
+            self.player.update(dt, input);
         }
 
         let test_a = &mut self.stack.windows[VW_TEST_A];

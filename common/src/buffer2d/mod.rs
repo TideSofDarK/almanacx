@@ -253,36 +253,4 @@ impl<T: B2DT> B2D<T> {
             );
         }
     }
-
-    pub fn blit_buffer_full_stretched_masked<B: B2DT>(
-        &mut self,
-        source: &B2D<B>,
-        stretch_to: (i32, i32),
-        offset: (i32, i32),
-    ) {
-        let y_start = offset.1.max(0);
-        let y_end = (y_start + stretch_to.1).clamp(0, self.height);
-        if y_end < 0 {
-            return;
-        }
-        let x_start = offset.0.max(0);
-        let x_end = (x_start + stretch_to.0).clamp(0, self.width);
-        if x_end < 0 {
-            return;
-        }
-        for y_dest in y_start..y_end {
-            for x_dest in x_start..x_end {
-                let u = (x_dest - offset.0) as f32 / stretch_to.0 as f32;
-                let v = (y_dest - offset.1) as f32 / stretch_to.1 as f32;
-
-                let color = source.sample(u.clamp(0.0, 1.0), v.clamp(0.0, 1.0));
-
-                if color == MASK_COLOR {
-                    continue;
-                }
-
-                self.set_color(x_dest, y_dest, color);
-            }
-        }
-    }
 }

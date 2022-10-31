@@ -289,27 +289,40 @@ impl Renderer {
             let offset_x = pos.x as i32 - (size / 2);
             let offset_y = pos.y as i32 - size;
 
-            let y_start = offset_y.max(0);
-            let y_end = (y_start + size).clamp(0, color_buffer.height);
-            if y_end < 0 {
+            let start_x = offset_x.max(0);
+            let end_x = offset_x + size;
+            if end_x < 0 {
                 return;
             }
-            let x_start = offset_x.max(0);
-            let x_end = (x_start + size).clamp(0, color_buffer.width);
-            if x_end < 0 {
-                return;
-            }
+            let end_x = end_x.min(color_buffer.width);
+            let start_u = if offset_x < 0 {
+                -offset_x as f32 / size as f32
+            } else {
+                0.0
+            };
+            let mut u = start_u;
 
-            let mut u = 0.0;
-            let mut v = 0.0;
+            let start_y = offset_y.max(0);
+            let end_y = offset_y + size;
+            if end_y < 0 {
+                return;
+            }
+            let end_y = end_y.min(color_buffer.height);
+            let mut v = if offset_y < 0 {
+                -offset_y as f32 / size as f32
+            } else {
+                0.0
+            };
+
             let uv_step = 1.0 / size as f32;
+
             let mut frag_depth = z_top;
             let frag_depth_step = (z_bottom - z_top) * uv_step;
 
-            for y_dest in y_start..y_end {
+            for dest_y in start_y..end_y {
                 v += uv_step;
                 frag_depth += frag_depth_step;
-                for x_dest in x_start..x_end {
+                for dest_x in start_x..end_x {
                     u += uv_step;
 
                     let color = sprite.sample(u, v);
@@ -318,14 +331,14 @@ impl Renderer {
                         continue;
                     }
 
-                    let index = calculate_index(x_dest, y_dest, color_buffer.width);
+                    let index = calculate_index(dest_x, dest_y, color_buffer.width);
 
                     if frag_depth < self.z_buffer[index] {
                         self.z_buffer[index] = frag_depth;
                         color_buffer.set_color_by_index(index, color);
                     }
                 }
-                u = 0.0;
+                u = start_u;
             }
         }
     }
