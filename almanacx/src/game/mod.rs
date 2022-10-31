@@ -113,7 +113,7 @@ impl Application for Game {
         if let Some(mut main_buffer) = main_buffer {
             main_buffer.bitmap.fill(color_from_tuple((2, 2, 2)));
 
-            self.renderer.begin(self.camera.proj * self.player.view);
+            self.renderer.begin(self.camera.proj, self.player.view);
 
             draw_grid(&mut self.renderer, Vector3::<f32>::zero(), 0.5);
 

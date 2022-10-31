@@ -12,9 +12,9 @@ impl World {
         let mut triangles: Vec<(Vertex, Vertex, Vertex)> = vec![];
         for x in 0..5 {
             for z in 0..5 {
-                let offset_x = 0.5 * x as f32 + 1.25;
+                let offset_x = -0.5 * x as f32 + 1.25;
                 let offset_z = 0.5 * z as f32 + 1.25;
-                let offset_y = 0.1;
+                let offset_y = 0.001;
                 let v0 = Vertex {
                     pos: Vector4::new(-0.25 + offset_x, offset_y, 0.25 + offset_z, 1.0),
                     color: Vector3::new(1.0, 0.0, 0.0),

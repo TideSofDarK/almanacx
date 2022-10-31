@@ -18,6 +18,7 @@ use self::clipping::{clip_line_to_frustum, clip_triangle_to_frustum};
 
 pub struct Renderer {
     vertex_storage: VertexStorage,
+    view_mat: Matrix4<f32>,
     view_proj_mat: Matrix4<f32>,
     viewport: Vector4<f32>,
 
@@ -39,6 +40,7 @@ impl Renderer {
                 indices_in: Vec::with_capacity(128),
                 indices_out: Vec::with_capacity(128),
             },
+            view_mat: Matrix4::identity(),
             view_proj_mat: Matrix4::identity(),
             viewport: Vector4::new(
                 width as f32 / 2.0,
@@ -53,8 +55,9 @@ impl Renderer {
         }
     }
 
-    pub fn begin(&mut self, mat: Matrix4<f32>) {
-        self.view_proj_mat = mat;
+    pub fn begin(&mut self, proj_mat: Matrix4<f32>, view_mat: Matrix4<f32>) {
+        self.view_mat = view_mat;
+        self.view_proj_mat = proj_mat * view_mat;
         self.color_buffer.borrow_mut().bitmap.fill(7500);
         self.z_buffer.fill(f32::MAX);
         self.tris_count = 0;
@@ -266,80 +269,82 @@ impl Renderer {
     }
 
     pub fn draw_sprite(&mut self, mut pos_bottom: Vector4<f32>, size: f32, sprite: &B2DO) {
-        let mut color_buffer = self.color_buffer.borrow_mut();
-
-        let mut pos_top = pos_bottom;
-        pos_top.y += size;
+        let mut pos_top = pos_bottom + (self.view_mat.y.truncate() * size).extend(0.0);
 
         pos_bottom = self.view_proj_mat * pos_bottom;
+
+        if pos_bottom.z < 0.1 {
+            return;
+        }
+
         pos_top = self.view_proj_mat * pos_top;
 
         let z_bottom = pos_bottom.z;
         let z_top = pos_top.z;
 
-        if let Some((mut pos, mut pos_top)) = clip_line_to_frustum(pos_bottom, pos_top) {
-            self.perspective_division(&mut pos);
-            self.transform_viewport(&mut pos);
+        self.perspective_division(&mut pos_bottom);
+        self.transform_viewport(&mut pos_bottom);
 
-            self.perspective_division(&mut pos_top);
-            self.transform_viewport(&mut pos_top);
+        self.perspective_division(&mut pos_top);
+        self.transform_viewport(&mut pos_top);
 
-            let size = (pos_top.y - pos.y).abs() as i32;
+        let size = (pos_top.y - pos_bottom.y).abs() as i32;
 
-            let offset_x = pos.x as i32 - (size / 2);
-            let offset_y = pos.y as i32 - size;
+        let offset_x = pos_bottom.x as i32 - (size / 2);
+        let offset_y = pos_bottom.y as i32 - size;
 
-            let start_x = offset_x.max(0);
-            let end_x = offset_x + size;
-            if end_x < 0 {
-                return;
-            }
-            let end_x = end_x.min(color_buffer.width);
-            let start_u = if offset_x < 0 {
-                -offset_x as f32 / size as f32
-            } else {
-                0.0
-            };
-            let mut u = start_u;
+        let mut color_buffer = self.color_buffer.borrow_mut();
 
-            let start_y = offset_y.max(0);
-            let end_y = offset_y + size;
-            if end_y < 0 {
-                return;
-            }
-            let end_y = end_y.min(color_buffer.height);
-            let mut v = if offset_y < 0 {
-                -offset_y as f32 / size as f32
-            } else {
-                0.0
-            };
+        let start_x = offset_x.max(0);
+        let end_x = offset_x + size;
+        if end_x < 0 {
+            return;
+        }
+        let end_x = end_x.min(color_buffer.width);
+        let start_u = if offset_x < 0 {
+            -offset_x as f32 / size as f32
+        } else {
+            0.0
+        };
+        let mut u = start_u;
 
-            let uv_step = 1.0 / size as f32;
+        let start_y = offset_y.max(0);
+        let end_y = offset_y + size;
+        if end_y < 0 {
+            return;
+        }
+        let end_y = end_y.min(color_buffer.height);
+        let mut v = if offset_y < 0 {
+            -offset_y as f32 / size as f32
+        } else {
+            0.0
+        };
 
-            let mut frag_depth = z_top;
-            let frag_depth_step = (z_bottom - z_top) * uv_step;
+        let uv_step = 1.0 / size as f32;
 
-            for dest_y in start_y..end_y {
-                v += uv_step;
-                frag_depth += frag_depth_step;
-                for dest_x in start_x..end_x {
-                    u += uv_step;
+        let mut frag_depth = z_top;
+        let frag_depth_step = (z_bottom - z_top) * uv_step;
 
-                    let color = sprite.sample(u, v);
+        for dest_y in start_y..end_y {
+            v += uv_step;
+            frag_depth += frag_depth_step;
+            for dest_x in start_x..end_x {
+                u += uv_step;
 
-                    if color == crate::buffer2d::MASK_COLOR {
-                        continue;
-                    }
+                let color = sprite.sample(u, v);
 
-                    let index = calculate_index(dest_x, dest_y, color_buffer.width);
-
-                    if frag_depth < self.z_buffer[index] {
-                        self.z_buffer[index] = frag_depth;
-                        color_buffer.set_color_by_index(index, color);
-                    }
+                if color == crate::buffer2d::MASK_COLOR {
+                    continue;
                 }
-                u = start_u;
+
+                let index = calculate_index(dest_x, dest_y, color_buffer.width);
+
+                if frag_depth < self.z_buffer[index] {
+                    self.z_buffer[index] = frag_depth;
+                    color_buffer.set_color_by_index(index, color);
+                }
             }
+            u = start_u;
         }
     }
 }

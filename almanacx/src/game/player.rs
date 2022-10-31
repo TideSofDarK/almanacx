@@ -18,7 +18,7 @@ impl Player {
             turn_speed: 1.45,
 
             pitch: 0.0,
-            yaw: 0.0,
+            yaw: std::f32::consts::PI,
             pos: Vector3::new(0.0, 0.5, 0.0),
             view: Matrix4::identity(),
         }
@@ -40,7 +40,7 @@ impl Player {
                 self.pitch -= dt * self.turn_speed;
             }
 
-            self.pitch = self.pitch.clamp(-0.6, 0.6);
+            self.pitch = self.pitch.clamp(-0.8, 0.8);
         }
 
         let turn_left = input.is_held(InputCode::Q) || input.is_held(InputCode::Left);
