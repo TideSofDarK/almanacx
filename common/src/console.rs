@@ -98,11 +98,13 @@ impl Console {
                     .blit_fill((self.input_char_x, 0), self.font.glyph_size, 0);
                 self.input_char_x -= self.font.glyph_size.0;
             } else if input.is_pressed(InputCode::Return) {
-                let command_string = std::mem::take(&mut self.input_string);
-                self.put_line(command_string.as_str());
-                self.input_buffer.bitmap.fill(0);
-                blit_char(&self.font, &mut self.input_buffer, ']', (0, 0));
-                self.input_char_x = 0;
+                if self.input_string.len() != 0 {
+                    let command_string = std::mem::take(&mut self.input_string);
+                    self.put_line(command_string.as_str());
+                    self.input_buffer.bitmap.fill(0);
+                    blit_char(&self.font, &mut self.input_buffer, ']', (0, 0));
+                    self.input_char_x = 0;
+                }
             } else if let Some(last_char) = input.last_char {
                 self.input_string.push(last_char);
                 blit_char(
