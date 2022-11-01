@@ -187,6 +187,10 @@ pub struct Input {
     pub last_char: Option<char>,
     pub mouse_x: i32,
     pub mouse_y: i32,
+    pub mouse_raw_x: i32,
+    pub mouse_raw_y: i32,
+    pub mouse_raw_delta_x: i32,
+    pub mouse_raw_delta_y: i32,
 }
 
 impl Input {
@@ -197,6 +201,10 @@ impl Input {
             last_char: None,
             mouse_x: 0,
             mouse_y: 0,
+            mouse_raw_x: 0,
+            mouse_raw_y: 0,
+            mouse_raw_delta_x: 0,
+            mouse_raw_delta_y: 0,
         }
     }
 
@@ -215,7 +223,19 @@ impl Input {
         !self.keys[key] && self.keys_previous[key]
     }
 
-    pub(super) fn cache_previous(&mut self) {
+    pub(super) fn update_mouse(&mut self, normal: (i32, i32), raw: (i32, i32)) {
+        self.mouse_x = normal.0;
+        self.mouse_y = normal.1;
+        self.mouse_raw_delta_x = raw.0 - self.mouse_raw_x;
+        self.mouse_raw_x = raw.0;
+        self.mouse_raw_delta_y = raw.1 - self.mouse_raw_y;
+        self.mouse_raw_y = raw.1;
+    }
+
+    pub(super) fn reset(&mut self) {
+        self.last_char = None;
+        self.mouse_raw_delta_x = 0;
+        self.mouse_raw_delta_y = 0;
         self.keys_previous = self.keys;
     }
 

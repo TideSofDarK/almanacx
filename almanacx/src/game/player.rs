@@ -1,5 +1,8 @@
 use cgmath::{Matrix3, Matrix4, Rad, SquareMatrix, Vector3};
-use common::platform::input::{Input, InputCode};
+use common::{
+    math::lerp,
+    platform::input::{Input, InputCode},
+};
 
 pub struct Player {
     walk_speed: f32,
@@ -32,16 +35,21 @@ impl Player {
         let look_up = input.is_held(InputCode::PageUp);
         let look_down = input.is_held(InputCode::PageDown);
 
-        if look_up ^ look_down {
+        if input.is_held(InputCode::RMB) {
+            self.yaw -= input.mouse_raw_delta_x as f32 * 1.16 * dt;
+            self.pitch -= input.mouse_raw_delta_y as f32 * 1.16 * dt;
+        } else if look_up ^ look_down {
             if look_up {
                 self.pitch += dt * self.turn_speed;
             }
             if look_down {
                 self.pitch -= dt * self.turn_speed;
             }
-
-            self.pitch = self.pitch.clamp(-0.8, 0.8);
+        } else {
+            self.pitch = lerp(self.pitch, 0.0, dt * 4.0);
         }
+
+        self.pitch = self.pitch.clamp(-0.8, 0.8);
 
         let turn_left = input.is_held(InputCode::Q) || input.is_held(InputCode::Left);
         let turn_right = input.is_held(InputCode::E) || input.is_held(InputCode::Right);

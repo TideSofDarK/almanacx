@@ -17,9 +17,9 @@ use cgmath::{InnerSpace, Matrix4, SquareMatrix, Vector2, Vector3, Vector4, Zero}
 //     Vector3 { x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), z: lerp(a.z, b.z, t) }
 // }
 
-// fn lerp(a: f32, b: f32, t: f32) -> f32 {
-//     a + (b - a) * t
-// }
+pub fn lerp(a: f32, b: f32, t: f32) -> f32 {
+    a + (b - a) * t
+}
 
 pub fn min3(a: i32, b: i32, c: i32) -> i32 {
     a.min(b.min(c))

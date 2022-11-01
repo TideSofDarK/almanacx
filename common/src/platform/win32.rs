@@ -111,7 +111,7 @@ pub unsafe fn init_application<A: Application>(mut app: A) {
     let mut previous = Instant::now();
     let mut accumulator: f32 = 0.0;
 
-    const MS_PER_UPDATE: f32 = 1.0 / 45.0;
+    const MS_PER_UPDATE: f32 = 1.0 / 60.0;
 
     let mut msg: MSG = std::mem::zeroed();
     'outer: while msg.message != WM_QUIT {
@@ -147,12 +147,11 @@ pub unsafe fn init_application<A: Application>(mut app: A) {
                     break 'outer;
                 }
                 accumulator -= MS_PER_UPDATE;
-                user_data.input.last_char = None;
-                user_data.input.cache_previous();
+                user_data.input.reset();
             }
 
             InvalidateRect(window_handle, std::ptr::null(), 0);
-            UpdateWindow(window_handle);
+            // UpdateWindow(window_handle);
         }
     }
 
@@ -249,8 +248,11 @@ unsafe extern "system" fn main_window_callback(
                 return 0;
             }
 
-            data.input.mouse_x = ((lparam & 0xffff) as i32) / 3;
-            data.input.mouse_y = (((lparam >> 16) & 0xffff) as i32) / 3;
+            let raw_x = (lparam & 0xffff) as i32;
+            let raw_y = ((lparam >> 16) & 0xffff) as i32;
+
+            data.input
+                .update_mouse((raw_x / 3, raw_y / 3), (raw_x, raw_y));
 
             // dbg!(data.input.mouse_x, data.input.mouse_y);
         }

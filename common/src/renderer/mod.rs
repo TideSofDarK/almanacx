@@ -2,7 +2,7 @@ pub mod camera;
 mod clipping;
 pub mod utils;
 
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, fmt::Display, rc::Rc};
 
 use cgmath::{
     InnerSpace, Matrix3, Matrix4, SquareMatrix, Vector2, Vector3, Vector4, VectorSpace, Zero,
@@ -11,10 +11,16 @@ use cgmath::{
 use crate::{
     buffer2d::{B2D, B2DO, B2DT},
     math::{max3, min3, orient2d},
-    utils::{calculate_index, color_from_tuple, color_from_vec},
+    utils::{calculate_index, color_from_vec},
 };
 
 use self::clipping::{clip_line_to_frustum, clip_triangle_to_frustum};
+
+pub enum RenderDebugMode {
+    None,
+    ZBuffer,
+    Clickables,
+}
 
 pub struct Renderer {
     vertex_storage: VertexStorage,
@@ -25,7 +31,9 @@ pub struct Renderer {
     z_buffer: Vec<f32>,
     pub color_buffer: Rc<RefCell<B2DO>>,
 
-    pub tris_count: u32,
+    pub debug_mode: RenderDebugMode,
+    pub stat_tris: u32,
+    pub stat_sprites: u32,
 }
 
 impl Renderer {
@@ -51,7 +59,9 @@ impl Renderer {
             z_buffer: vec![0.0; (height * width) as usize],
             color_buffer: color_buffer.clone(),
 
-            tris_count: 0,
+            debug_mode: RenderDebugMode::None,
+            stat_tris: 0,
+            stat_sprites: 0,
         }
     }
 
@@ -60,7 +70,8 @@ impl Renderer {
         self.view_proj_mat = proj_mat * view_mat;
         self.color_buffer.borrow_mut().bitmap.fill(7500);
         self.z_buffer.fill(f32::MAX);
-        self.tris_count = 0;
+        self.stat_tris = 0;
+        self.stat_sprites = 0;
     }
 
     pub fn set_viewport(&mut self, viewport: Vector4<f32>) {
@@ -85,7 +96,7 @@ impl Renderer {
         pos.x = pos.x.round();
         pos.y = pos.y.round();
 
-        // pos.z = 0.5 * (depth_range.sum - depth_range.diff * pos.z);
+        // pos.z = 0.5 * ((0.01 + 100.0) - (100.0 - 0.01) * pos.z);
     }
 
     pub fn draw_gizmo(&mut self, vw: Vertex) {
@@ -233,22 +244,26 @@ impl Renderer {
                     if frag_depth < self.z_buffer[index] {
                         self.z_buffer[index] = frag_depth;
 
-                        let color = match texture {
-                            Some(ref texture) => {
-                                let uv = Matrix3::from_cols(
-                                    vertices[0].uv.extend(0.0),
-                                    vertices[1].uv.extend(0.0),
-                                    vertices[2].uv.extend(0.0),
-                                ) * bc_clip;
-                                texture.sample(uv.x, uv.y)
-                            }
-                            None => color_from_vec(
-                                (Matrix3::from_cols(
-                                    vertices[0].color,
-                                    vertices[1].color,
-                                    vertices[2].color,
-                                ) * bc_clip),
-                            ),
+                        let color = match self.debug_mode {
+                            RenderDebugMode::None => match texture {
+                                Some(ref texture) => {
+                                    let uv = Matrix3::from_cols(
+                                        vertices[0].uv.extend(0.0),
+                                        vertices[1].uv.extend(0.0),
+                                        vertices[2].uv.extend(0.0),
+                                    ) * bc_clip;
+                                    texture.sample(uv.x, uv.y)
+                                }
+                                None => color_from_vec(
+                                    Matrix3::from_cols(
+                                        vertices[0].color,
+                                        vertices[1].color,
+                                        vertices[2].color,
+                                    ) * bc_clip,
+                                ),
+                            },
+                            RenderDebugMode::ZBuffer => z_to_color(frag_depth),
+                            RenderDebugMode::Clickables => todo!(),
                         };
 
                         color_buffer.set_color_by_index(index, color);
@@ -265,22 +280,21 @@ impl Renderer {
             bc_screen_z_row += b01;
         }
 
-        self.tris_count += 1;
+        self.stat_tris += 1;
     }
 
     pub fn draw_sprite(&mut self, mut pos_bottom: Vector4<f32>, size: f32, sprite: &B2DO) {
-        let mut pos_top = pos_bottom + (self.view_mat.y.truncate() * size).extend(0.0);
-
         pos_bottom = self.view_proj_mat * pos_bottom;
 
         if pos_bottom.z < 0.1 {
             return;
         }
 
-        pos_top = self.view_proj_mat * pos_top;
+        let mut pos_top = pos_bottom;
+        pos_top.y += size;
 
-        let z_bottom = pos_bottom.z;
-        let z_top = pos_top.z;
+        let bottom_z = pos_bottom.z;
+        let top_z = pos_top.z;
 
         self.perspective_division(&mut pos_bottom);
         self.transform_viewport(&mut pos_bottom);
@@ -322,8 +336,8 @@ impl Renderer {
 
         let uv_step = 1.0 / size as f32;
 
-        let mut frag_depth = z_top;
-        let frag_depth_step = (z_bottom - z_top) * uv_step;
+        let mut frag_depth = top_z;
+        let frag_depth_step = (bottom_z - top_z) * uv_step;
 
         for dest_y in start_y..end_y {
             v += uv_step;
@@ -341,11 +355,27 @@ impl Renderer {
 
                 if frag_depth < self.z_buffer[index] {
                     self.z_buffer[index] = frag_depth;
-                    color_buffer.set_color_by_index(index, color);
+
+                    color_buffer.set_color_by_index(
+                        index,
+                        match self.debug_mode {
+                            RenderDebugMode::None => color,
+                            RenderDebugMode::ZBuffer => z_to_color(frag_depth),
+                            RenderDebugMode::Clickables => todo!(),
+                        },
+                    )
                 }
             }
             u = start_u;
         }
+
+        self.stat_sprites += 1;
+    }
+}
+
+impl Display for Renderer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Tris: {} Sprites: {}", self.stat_tris, self.stat_sprites)
     }
 }
 
@@ -379,4 +409,9 @@ pub struct VertexStorage {
     pub indices: Vec<usize>,
     pub indices_in: Vec<usize>,
     pub indices_out: Vec<usize>,
+}
+
+fn z_to_color(z: f32) -> u16 {
+    let channel = z.clamp(0.0, 1.0);
+    color_from_vec(Vector3::new(channel, channel, channel))
 }

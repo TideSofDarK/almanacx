@@ -16,7 +16,7 @@ use common::{
         input::{Input, InputCode},
         Application,
     },
-    renderer::{camera::Camera, utils::draw_grid, Renderer},
+    renderer::{camera::Camera, utils::draw_grid, RenderDebugMode, Renderer},
     utils::color_from_tuple,
 };
 
@@ -84,11 +84,19 @@ impl Application for Game {
         // // }
 
         if input.is_pressed(InputCode::F12) {
-            println!("{:?}", self.renderer.tris_count);
+            println!("{}", self.renderer);
         }
 
         if input.is_pressed(InputCode::F11) {
             println!("{:?}", dt);
+        }
+
+        if input.is_pressed(InputCode::F10) {
+            self.renderer.debug_mode = match self.renderer.debug_mode {
+                RenderDebugMode::None => RenderDebugMode::ZBuffer,
+                RenderDebugMode::ZBuffer => RenderDebugMode::None,
+                RenderDebugMode::Clickables => RenderDebugMode::None,
+            }
         }
 
         self.tick += dt;
@@ -123,11 +131,13 @@ impl Application for Game {
                         self.renderer.draw_triangle(v0, v1, v2, Some(&self.texture));
                     }
 
-                    self.renderer.draw_sprite(
-                        Vector4::new(-0.5, 0.0, 1.5, 1.0),
-                        1.0,
-                        &self.crusader,
-                    );
+                    for i in 0..10 {
+                        self.renderer.draw_sprite(
+                            Vector4::new(0.25 + (i as f32 * 0.1), 0.0, 1.5 + (i as f32 * 0.4), 1.0),
+                            1.5,
+                            &self.crusader,
+                        );
+                    }
                 }
                 GameState::Automap => {}
             }

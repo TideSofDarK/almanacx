@@ -54,8 +54,10 @@ pub fn read_str_8bytes(buf: &[u8], offset: usize) -> String {
 
 // Rect is (x, y, width, height)
 pub const fn is_inside(point: (i32, i32), rect: (i32, i32, i32, i32)) -> bool {
-    point.0 >= rect.0 && point.0 <= rect.0 + rect.2
-        && point.1 >= rect.1 && point.1 <= rect.1 + rect.3
+    point.0 >= rect.0
+        && point.0 <= rect.0 + rect.2
+        && point.1 >= rect.1
+        && point.1 <= rect.1 + rect.3
 }
 
 pub fn calculate_index(x: i32, y: i32, width: i32) -> usize {
@@ -63,7 +65,11 @@ pub fn calculate_index(x: i32, y: i32, width: i32) -> usize {
 }
 
 pub fn color_from_vec(color: Vector3<f32>) -> u16 {
-    ((color.x * 32.0) as u16) << 10 + ((color.x * 64.0) as u16) << 5 + ((color.x * 32.0) as u16)
+    color_from_tuple((
+        (color.x * 31.0) as u16,
+        (color.y * 31.0) as u16,
+        (color.z * 31.0) as u16,
+    ))
 }
 
 pub const fn color_from_tuple(color: (u16, u16, u16)) -> u16 {
