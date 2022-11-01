@@ -63,7 +63,7 @@ impl Player {
             }
         }
 
-        let mut walk_sprint_modifier = dt;
+        let mut walk_sprint_modifier = self.walk_speed * dt;
         if input.is_held(InputCode::Shift) {
             walk_sprint_modifier *= 1.5;
         }

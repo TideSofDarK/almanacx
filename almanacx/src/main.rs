@@ -3,8 +3,7 @@ mod game;
 use common::{
     buffer2d::{
         text::{blit_str_wrap, Font},
-        virtual_window::{self, VirtualWindow, VirtualWindowStack, WindowBorder},
-        B2DO,
+        virtual_window::{VirtualWindow, VirtualWindowStack, WindowBorder},
     },
     console::Console,
     image::bmp,
@@ -63,10 +62,10 @@ fn load_game() -> Game {
     blit_str_wrap(
         &font,
         &mut virtual_windows[VW_TEST_A].buffer.borrow_mut(),
-        "WrappedWrappedWrappedWrappedssssssssssssssssssssssssssssssssssssssssssss text Wrapped text Wrapped text Wrapped text ",
+        "Wrapped text Wrapped text Wrapped text Wrapped text ",
         (12, 12),
         0,
-        false
+        false,
     );
     let renderer = Renderer::new(&virtual_windows[VW_PRIMARY].buffer);
     console.put_line("Renderer created");

@@ -24,7 +24,6 @@ pub enum RenderDebugMode {
 
 pub struct Renderer {
     vertex_storage: VertexStorage,
-    view_mat: Matrix4<f32>,
     view_proj_mat: Matrix4<f32>,
     viewport: Vector4<f32>,
 
@@ -48,7 +47,6 @@ impl Renderer {
                 indices_in: Vec::with_capacity(128),
                 indices_out: Vec::with_capacity(128),
             },
-            view_mat: Matrix4::identity(),
             view_proj_mat: Matrix4::identity(),
             viewport: Vector4::new(
                 width as f32 / 2.0,
@@ -66,7 +64,6 @@ impl Renderer {
     }
 
     pub fn begin(&mut self, proj_mat: Matrix4<f32>, view_mat: Matrix4<f32>) {
-        self.view_mat = view_mat;
         self.view_proj_mat = proj_mat * view_mat;
         self.color_buffer.borrow_mut().bitmap.fill(7500);
         self.z_buffer.fill(f32::MAX);
