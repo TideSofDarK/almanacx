@@ -4,9 +4,9 @@ use self::input::Input;
 
 pub mod input;
 
-#[cfg_attr(target_os = "linux", path = "sdl.rs")]
-#[cfg_attr(target_os = "windows", path = "win32.rs")]
-mod sdl;
+#[cfg_attr(unix, path = "sdl.rs")]
+#[cfg_attr(windows, path = "win32.rs")]
+mod platform_implementation;
 
 pub trait Application {
     fn get_title(&self) -> &'static str;
@@ -14,5 +14,5 @@ pub trait Application {
 }
 
 pub fn init_application<A: Application>(app: A) {
-    unsafe { sdl::init_application(app) }
+    unsafe { platform_implementation::init_application(app) }
 }

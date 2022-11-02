@@ -18,8 +18,6 @@ pub fn sdl_main() -> Result<(), String> {
 
     let window = video_subsystem
         .window("rust-sdl2 demo: Video", 800, 600)
-        .borderless()
-        .fullscreen_desktop()
         .position_centered()
         .opengl()
         .build()
@@ -42,6 +40,7 @@ pub fn sdl_main() -> Result<(), String> {
             }
         }
     })?;
+
     canvas.clear();
     canvas.copy(&texture, None, Some(Rect::new(100, 100, 256, 256)))?;
     canvas.copy_ex(
