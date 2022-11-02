@@ -36,8 +36,10 @@ impl Player {
         let look_down = input.is_held(InputCode::PageDown);
 
         if input.is_held(InputCode::RMB) {
-            self.yaw -= input.mouse_raw_delta_x as f32 * 1.16 * dt;
-            self.pitch -= input.mouse_raw_delta_y as f32 * 1.16 * dt;
+            let d = 1.0 - f32::exp(f32::log2(0.5) * 2.0 * dt);
+
+            self.yaw -= input.mouse_raw_delta_x as f32 * d;
+            self.pitch -= input.mouse_raw_delta_y as f32 * d;
         } else if look_up ^ look_down {
             if look_up {
                 self.pitch += dt * self.turn_speed;
