@@ -76,7 +76,7 @@ fn load_game() -> Game {
 
     let game_state = GameState::Action;
     let camera = Camera::perspective(
-        f32::to_radians(66.6),
+        f32::to_radians(90.0),
         PRIMARY_WIDTH as f32 / PRIMARY_HEIGHT as f32,
         0.01,
         100.0,

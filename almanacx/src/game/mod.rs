@@ -134,7 +134,7 @@ impl Application for Game {
                     for i in 0..10 {
                         self.renderer.draw_sprite(
                             Vector4::new(0.25 + (i as f32 * 0.1), 0.0, 1.5 + (i as f32 * 0.4), 1.0),
-                            1.5,
+                            1.0,
                             &self.crusader,
                         );
                     }

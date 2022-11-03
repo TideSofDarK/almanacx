@@ -24,6 +24,8 @@ pub enum RenderDebugMode {
 
 pub struct Renderer {
     vertex_storage: VertexStorage,
+    view_mat: Matrix4<f32>,
+    proj_mat: Matrix4<f32>,
     view_proj_mat: Matrix4<f32>,
     viewport: Vector4<f32>,
 
@@ -47,6 +49,8 @@ impl Renderer {
                 indices_in: Vec::with_capacity(128),
                 indices_out: Vec::with_capacity(128),
             },
+            view_mat: Matrix4::identity(),
+            proj_mat: Matrix4::identity(),
             view_proj_mat: Matrix4::identity(),
             viewport: Vector4::new(
                 width as f32 / 2.0,
@@ -64,6 +68,8 @@ impl Renderer {
     }
 
     pub fn begin(&mut self, proj_mat: Matrix4<f32>, view_mat: Matrix4<f32>) {
+        self.view_mat = view_mat;
+        self.proj_mat = proj_mat;
         self.view_proj_mat = proj_mat * view_mat;
         self.color_buffer.borrow_mut().bitmap.fill(7500);
         self.z_buffer.fill(f32::MAX);
@@ -281,14 +287,18 @@ impl Renderer {
     }
 
     pub fn draw_sprite(&mut self, mut pos_bottom: Vector4<f32>, size: f32, sprite: &B2DO) {
+        let mut pos_top = pos_bottom;
+
         pos_bottom = self.view_proj_mat * pos_bottom;
 
         if pos_bottom.z < 0.1 {
             return;
         }
 
-        let mut pos_top = pos_bottom;
-        pos_top.y += size;
+        pos_top = (self.proj_mat
+            * Matrix4::from_translation(Vector3::new(0.0, size, 0.0))
+            * self.view_mat)
+            * pos_top;
 
         let bottom_z = pos_bottom.z;
         let top_z = pos_top.z;
